@@ -1,0 +1,111 @@
+header {
+  background-color: var(--secondaryBG);
+  height: 200px;
+  margin: 0;
+  padding: 0;
+  display: flex; 
+  justify-content: space-between;
+}
+
+nav {
+  padding: 15px;
+}
+
+nav a {
+  padding: 0 10px 0 10px;
+}
+
+.main-logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 75px;
+  width: 300px;
+  background-color: var(--tertiaryBG);
+  border-radius: 1rem;
+  margin: 10px;
+}
+
+img.site-logo {
+  width: 60px;
+  height: auto;
+}
+
+.logo-inline-link {
+  display: contents;
+}
+
+.logo-inline-link:visited {
+  color: black;
+}
+
+h1.site-title,
+img.site-logo {
+  padding: 0 10px 0 10px;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  header {
+    height: 160px;
+  }
+  
+  .main-logo-container {
+    width: 250px;
+    height: 65px;
+  }
+  
+  img.site-logo {
+    width: 50px;
+  }
+  
+  h1.site-title {
+    font-size: 1.4rem;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 620px) {
+  header {
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  nav {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    padding: 10px;
+  }
+
+  nav a {
+    padding-bottom: 10px;
+  }
+  
+  .main-logo-container {
+    width: 220px;
+    height: 60px;
+  }
+}
+
+/* Small mobile styles */
+@media (max-width: 480px) {
+  .main-logo-container {
+    width: 200px;
+    height: 50px;
+  }
+  
+  img.site-logo {
+    width: 40px;
+  }
+  
+  h1.site-title {
+    font-size: 1.2rem;
+  }
+  
+  nav a {
+    font-size: 0.9rem;
+    padding: 0 5px 8px 5px;
+  }
+}

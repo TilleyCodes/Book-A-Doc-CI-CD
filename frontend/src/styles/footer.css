@@ -1,0 +1,39 @@
+footer {
+  height: 100px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+footer > a {
+  padding: 0 10px 0 30px;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  footer {
+    height: 80px;
+  }
+  
+  footer > a {
+    text-align: center;
+    padding: 0 8px 0 20px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  footer {
+    height: 70px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 10px 0;
+  }
+  
+  footer > a {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+  }
+}

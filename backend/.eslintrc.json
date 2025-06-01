@@ -1,0 +1,23 @@
+{
+  "env": {
+    "browser": false,
+    "node": true,
+    "es6": true,
+    "es2021": true,
+    "jest": true
+  },
+  "extends": ["airbnb-base"],
+  "parserOptions": {
+    "ecmaVersion": 2020
+  },
+  "rules": {
+    "no-console": "off", // for Node 
+    "consistent-return": "off", // For Express route handlers
+    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }], // For Express middleware
+    "no-underscore-dangle": "off", // For MongoDB methods
+    "import/no-unresolved": ["error", { "commonjs": true }], // For Node 
+    "import/no-extraneous-dependencies": ["error", {
+      "devDependencies": ["**/*.test.js", "**/*.spec.js", "**/tests/**", "**/src/tests/**"]
+    }] // to allow dev imports for testing
+  }
+}

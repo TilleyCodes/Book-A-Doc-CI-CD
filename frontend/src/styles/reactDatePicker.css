@@ -1,0 +1,31 @@
+.react-datepicker {
+  border: 1px solid var(--secondaryBG);
+  border-radius: 0.25rem;
+}
+
+.react-datepicker__header {
+  background-color: var(--secondaryBG);
+  color: white;
+}
+
+.react-datepicker__day--selected {
+  background-color: var(--secondaryBG);
+  color: white;
+}
+
+.react-datepicker_navigation {
+  display: hidden;
+}
+
+.react-datepicker-wrapper {
+  width: 100% !important;
+  display: block !important;
+}
+
+.react-datepicker__input-container {
+  width: 100% !important;
+}
+
+.my-datepicker input {
+  width: 100% !important;
+}

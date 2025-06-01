@@ -1,0 +1,142 @@
+:root {
+  font-family: "Inter", Helvetica, Arial, sans-serif;
+  font-optical-sizing: auto;
+
+  --primaryBG: white;
+  --secondaryBG: #9bb4ce;
+  --tertiaryBG: #e1e0e0;
+  --cardBG: #f2f2f2;
+  --primaryFont: black;
+  --secondaryFont: #656464;
+  --primaryText: #333;
+  --secondaryText: #555;
+  --cardText: #4a6da7;
+  --cardShadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --accent: #4a6da7;
+  --successColor: #009800c1;
+  --errorColor: #e74c3c;
+  --warningBG: #fff3cd;
+  --warningColor: #856404;
+
+  box-sizing: border-box;
+  
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+header,
+footer {
+  flex-shrink: 0;
+}
+
+main {
+  flex-grow: 1;
+  position: relative;
+}
+
+a {
+  text-decoration: none;
+  color: var(--primaryFont);
+}
+
+a:visited {
+  color: var(--secondaryFont);
+}
+
+/* Common utility classes */
+.inline-link {
+  display: contents;
+  color: var(--secondaryBG);
+  font-weight: 600;
+}
+
+.error-message {
+  color: var(--errorColor);
+  background-color: #fdeaea;
+  padding: 10px;
+  border-radius: 4px;
+  margin: 10px 0;
+  text-align: center;
+  font-size: 0.9rem;
+  border-left: 4px solid var(--errorColor);
+}
+
+.success-message {
+  font-style: italic;
+  animation: fadeIn 1s linear forwards;
+  color: var(--successColor);
+}
+
+/* Common animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes raise {
+  from {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+  to {
+    transform: translateY(-3px);
+    box-shadow: var(--cardShadow);
+  }
+}
+
+@keyframes lower {
+  from {
+    transform: translateY(-3px);
+    box-shadow: var(--cardShadow);
+  }
+  to {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .error-message {
+    padding: 8px;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .error-message {
+    padding: 6px;
+    font-size: 0.8rem;
+  }
+}

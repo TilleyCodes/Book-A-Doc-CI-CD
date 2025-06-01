@@ -1,0 +1,82 @@
+.about-container {
+  max-width: 800px;
+  margin: auto;
+  text-align: center;
+  font-family: Arial, sans-serif;
+  color: var(--primaryText);
+  padding: 0 20px;
+}
+
+.about-title {
+  text-align: center;
+  font-size: 1.8rem;
+}
+
+.about-description {
+  font-size: 1.2rem;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.about-services {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.about-services li {
+  font-size: 1rem;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.about-cta {
+  font-size: 1rem;
+  margin-top: 20px;
+  font-weight: bold;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  .about-container {
+    width: 90%;
+  }
+
+  .about-title {
+    text-align: center;
+    font-size: 1.5rem;
+  }
+  
+  .about-description {
+    font-size: 1.1rem;
+  }
+  
+  .about-services li {
+    padding: 8px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .about-container {
+    width: 95%;
+  }
+
+  .about-title {
+    font-size: 1.3rem;
+  }
+  
+  .about-description {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  .about-services li {
+    font-size: 0.9rem;
+    padding: 8px 5px;
+  }
+  
+  .about-cta {
+    font-size: 0.9rem;
+  }
+}

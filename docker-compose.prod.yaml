@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: book-a-doc-backend-v1.0-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env.production
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=https://api.book-a-doc.com
+    container_name: book-a-doc-frontend-v1.0-prod
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - app-network
+    # Add volumes for SSL certificates
+    volumes:
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - backend
+
+  mongo:
+    image: mongo
+    container_name: book-a-doc-mongo-v1.0-prod
+    restart: always
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+volumes:
+  mongo-data:
+
+networks:
+  app-network:
+    driver: bridge

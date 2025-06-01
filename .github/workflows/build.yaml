@@ -1,0 +1,284 @@
+name: Build and Test Application
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  REGISTRY: docker.io
+  FRONTEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/book-a-doc-frontend
+  BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/book-a-doc-backend
+  NODE_VERSION: 18
+
+jobs:
+  # Job 1: Install dependencies and cache them
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend-cache-key: ${{ steps.cache-keys.outputs.frontend }}
+      backend-cache-key: ${{ steps.cache-keys.outputs.backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "frontend=${{ runner.os }}-frontend-${{ hashFiles('frontend/package-lock.json') }}" >> $GITHUB_OUTPUT
+          echo "backend=${{ runner.os }}-backend-${{ hashFiles('backend/package-lock.json') }}" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Cache frontend dependencies
+      - name: Cache frontend dependencies
+        id: cache-frontend
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ steps.cache-keys.outputs.frontend }}
+
+      - name: Install frontend dependencies
+        if: steps.cache-frontend.outputs.cache-hit != 'true'
+        run: |
+          cd frontend
+          npm ci --prefer-offline --no-audit
+
+      # Cache backend dependencies
+      - name: Cache backend dependencies
+        id: cache-backend
+        uses: actions/cache@v3
+        with:
+          path: backend/node_modules
+          key: ${{ steps.cache-keys.outputs.backend }}
+
+      - name: Install backend dependencies
+        if: steps.cache-backend.outputs.cache-hit != 'true'
+        run: |
+          cd backend
+          npm ci --prefer-offline --no-audit
+
+  # Job 2: Run comprehensive tests
+  test:
+    runs-on: ubuntu-latest
+    needs: setup
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      matrix:
+        test-type: [frontend, backend, integration]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Restore frontend cache
+      - name: Restore frontend dependencies
+        if: matrix.test-type == 'frontend' || matrix.test-type == 'integration'
+        uses: actions/cache@v3
+        with:
+          path: frontend/node_modules
+          key: ${{ needs.setup.outputs.frontend-cache-key }}
+
+      # Restore backend cache
+      - name: Restore backend dependencies
+        if: matrix.test-type == 'backend' || matrix.test-type == 'integration'
+        uses: actions/cache@v3
+        with:
+          path: backend/node_modules
+          key: ${{ needs.setup.outputs.backend-cache-key }}
+
+      # Frontend tests
+      - name: Run frontend unit tests
+        if: matrix.test-type == 'frontend'
+        run: |
+          cd frontend
+          npm run test:ci
+        env:
+          CI: true
+
+      - name: Run frontend linting
+        if: matrix.test-type == 'frontend'
+        run: |
+          cd frontend
+          npm run lint
+
+      # Backend tests
+      - name: Setup test environment
+        if: matrix.test-type == 'backend'
+        run: |
+          cd backend
+          cp .env.example .env.test
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test_db
+          NODE_ENV: test
+
+      - name: Run backend unit tests
+        if: matrix.test-type == 'backend'
+        run: |
+          cd backend
+          npm run test
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test_db
+          NODE_ENV: test
+
+      - name: Run backend integration tests
+        if: matrix.test-type == 'backend'
+        run: |
+          cd backend
+          npm run test:integration
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test_db
+          NODE_ENV: test
+
+      # End-to-end tests
+      - name: Run E2E tests
+        if: matrix.test-type == 'integration'
+        run: |
+          # Start backend in background
+          cd backend && npm start &
+          # Wait for backend to be ready
+          sleep 10
+          # Start frontend and run E2E tests
+          cd frontend && npm run test:e2e
+        env:
+          MONGODB_URI: mongodb://localhost:27017/e2e_test_db
+          VITE_API_URL: http://localhost:3000
+
+      # Upload test results
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            frontend/coverage/
+            backend/coverage/
+            test-results/
+
+  # Job 3: Security scanning
+  security:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # Job 4: Build Docker images
+  build:
+    runs-on: ubuntu-latest
+    needs: [test, security]
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-digest: ${{ steps.build-frontend.outputs.digest }}
+      backend-digest: ${{ steps.build-backend.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Build frontend image
+      - name: Extract frontend metadata
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend image
+        id: build-frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VITE_API_URL=${{ secrets.PROD_API_URL }}
+
+      # Build backend image
+      - name: Extract backend metadata
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push backend image
+        id: build-backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Store build artifacts
+      - name: Store build metadata
+        run: |
+          echo "Frontend Image: ${{ steps.meta-frontend.outputs.tags }}" >> build-info.txt
+          echo "Frontend Digest: ${{ steps.build-frontend.outputs.digest }}" >> build-info.txt
+          echo "Backend Image: ${{ steps.meta-backend.outputs.tags }}" >> build-info.txt
+          echo "Backend Digest: ${{ steps.build-backend.outputs.digest }}" >> build-info.txt
+          echo "Build Date: $(date)" >> build-info.txt
+          echo "Commit SHA: ${{ github.sha }}" >> build-info.txt
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-metadata
+          path: build-info.txt
+          retention-days: 30

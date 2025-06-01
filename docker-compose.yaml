@@ -1,0 +1,48 @@
+services:
+
+  mongo:
+    image: mongo
+    container_name: book-a-doc-mongo-v1.0-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: book-a-doc-backend-v1.0-dev
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: book-a-doc-frontend-v1.0-dev
+    environment:
+      - VITE_API_URL=http://backend:3000
+    ports:
+      - "5173:5173"
+    stdin_open: true
+    tty: true
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    
+volumes:
+  mongo-data:
+
+networks:
+  app-network:
+    driver: bridge

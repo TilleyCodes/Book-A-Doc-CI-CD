@@ -1,0 +1,390 @@
+name: Scheduled Maintenance and Monitoring
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC for maintenance tasks
+    - cron: '0 2 * * *'
+    # Run every 6 hours for health checks
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      task_type:
+        description: 'Type of maintenance task'
+        required: true
+        default: 'health_check'
+        type: choice
+        options:
+          - health_check
+          - security_scan
+          - performance_audit
+          - cleanup
+          - backup
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: australia-southeast1
+  SERVICE_NAME: book-a-doc
+
+jobs:
+  # Job 1: Determine what tasks to run
+  determine-tasks:
+    runs-on: ubuntu-latest
+    outputs:
+      run-health-check: ${{ steps.tasks.outputs.health_check }}
+      run-security-scan: ${{ steps.tasks.outputs.security_scan }}
+      run-performance-audit: ${{ steps.tasks.outputs.performance_audit }}
+      run-cleanup: ${{ steps.tasks.outputs.cleanup }}
+      run-backup: ${{ steps.tasks.outputs.backup }}
+    steps:
+      - name: Determine tasks to run
+        id: tasks
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TASK="${{ github.event.inputs.task_type }}"
+            echo "${TASK}=true" >> $GITHUB_OUTPUT
+          else
+            # Scheduled run - determine based on time
+            HOUR=$(date -u +%H)
+            if [ "$HOUR" = "02" ]; then
+              # Daily maintenance at 2 AM
+              echo "health_check=true" >> $GITHUB_OUTPUT
+              echo "security_scan=true" >> $GITHUB_OUTPUT
+              echo "cleanup=true" >> $GITHUB_OUTPUT
+              echo "backup=true" >> $GITHUB_OUTPUT
+              
+              # Performance audit on Sundays
+              if [ "$(date +%u)" = "7" ]; then
+                echo "performance_audit=true" >> $GITHUB_OUTPUT
+              fi
+            else
+              # Regular health checks every 6 hours
+              echo "health_check=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  # Job 2: Health check monitoring
+  health-check:
+    runs-on: ubuntu-latest
+    needs: determine-tasks
+    if: needs.determine-tasks.outputs.run-health-check == 'true'
+    steps:
+      - name: Check application health
+        id: health
+        run: |
+          # Check frontend health
+          FRONTEND_URL="https://${{ env.SERVICE_NAME }}-frontend-hash.a.run.app"
+          if curl -f -s "$FRONTEND_URL" > /dev/null; then
+            echo "frontend_status=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "frontend_status=unhealthy" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check backend health
+          BACKEND_URL="https://${{ env.SERVICE_NAME }}-backend-hash.a.run.app"
+          if curl -f -s "$BACKEND_URL/health" > /dev/null; then
+            echo "backend_status=healthy" >> $GITHUB_OUTPUT
+          else
+            echo "backend_status=unhealthy" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Test database connectivity
+        run: |
+          # Create a simple Node.js script to test MongoDB connectivity
+          cat > test-db.js << 'EOF'
+          const mongoose = require('mongoose');
+          
+          mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000
+          }).then(() => {
+            console.log('Database connection successful');
+            process.exit(0);
+          }).catch((error) => {
+            console.error('Database connection failed:', error);
+            process.exit(1);
+          });
+          EOF
+          
+          npm init -y
+          npm install mongoose
+          node test-db.js
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
+      - name: Check response times
+        run: |
+          # Measure response times
+          BACKEND_URL="https://${{ env.SERVICE_NAME }}-backend-hash.a.run.app"
+          
+          RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" "$BACKEND_URL/health")
+          echo "Backend response time: ${RESPONSE_TIME}s"
+          
+          # Alert if response time > 2 seconds
+          if (( $(echo "$RESPONSE_TIME > 2.0" | bc -l) )); then
+            echo "⚠️ Slow response time detected: ${RESPONSE_TIME}s"
+            echo "slow_response=true" >> $GITHUB_ENV
+          fi
+
+      - name: Create health report
+        run: |
+          echo "## 🏥 Health Check Report" >> health-report.md
+          echo "**Date:** $(date -u)" >> health-report.md
+          echo "**Frontend Status:** ${{ steps.health.outputs.frontend_status }}" >> health-report.md
+          echo "**Backend Status:** ${{ steps.health.outputs.backend_status }}" >> health-report.md
+          echo "**Database Status:** Connected" >> health-report.md
+          
+          if [ "${{ env.slow_response }}" = "true" ]; then
+            echo "**⚠️ Performance Warning:** Slow response times detected" >> health-report.md
+          fi
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v3
+        with:
+          name: health-report-$(date +%Y%m%d-%H%M)
+          path: health-report.md
+
+  # Job 3: Security scanning
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: determine-tasks
+    if: needs.determine-tasks.outputs.run-security-scan == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run dependency vulnerability scan
+        run: |
+          # Scan frontend dependencies
+          cd frontend
+          npm audit --audit-level=moderate --json > ../frontend-audit.json || true
+          
+          # Scan backend dependencies
+          cd ../backend
+          npm audit --audit-level=moderate --json > ../backend-audit.json || true
+
+      - name: Scan container images for vulnerabilities
+        run: |
+          # Pull latest images
+          docker pull ${{ secrets.DOCKER_USERNAME }}/book-a-doc-frontend:latest
+          docker pull ${{ secrets.DOCKER_USERNAME }}/book-a-doc-backend:latest
+          
+          # Scan with Trivy
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $PWD:/workspace aquasec/trivy:latest image \
+            --format json --output /workspace/frontend-image-scan.json \
+            ${{ secrets.DOCKER_USERNAME }}/book-a-doc-frontend:latest
+          
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $PWD:/workspace aquasec/trivy:latest image \
+            --format json --output /workspace/backend-image-scan.json \
+            ${{ secrets.DOCKER_USERNAME }}/book-a-doc-backend:latest
+
+      - name: Check for secrets in code
+        run: |
+          # Use git-secrets or similar tool
+          git config --global --add safe.directory /github/workspace
+          
+          # Simple regex-based secret detection
+          echo "Scanning for potential secrets..."
+          grep -r -E "(password|secret|key|token|api_key)" . \
+            --include="*.js" --include="*.json" --include="*.yml" \
+            --exclude-dir=node_modules --exclude-dir=.git > secrets-scan.log || true
+          
+          if [ -s secrets-scan.log ]; then
+            echo "⚠️ Potential secrets found in code"
+            echo "review_secrets=true" >> $GITHUB_ENV
+          fi
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports-$(date +%Y%m%d)
+          path: |
+            frontend-audit.json
+            backend-audit.json
+            frontend-image-scan.json
+            backend-image-scan.json
+            secrets-scan.log
+
+  # Job 4: Performance audit
+  performance-audit:
+    runs-on: ubuntu-latest
+    needs: determine-tasks
+    if: needs.determine-tasks.outputs.run-performance-audit == 'true'
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install Lighthouse CLI
+        run: npm install -g @lhci/cli lighthouse
+
+      - name: Run Lighthouse audit
+        run: |
+          FRONTEND_URL="https://${{ env.SERVICE_NAME }}-frontend-hash.a.run.app"
+          
+          lighthouse "$FRONTEND_URL" \
+            --output=json \
+            --output-path=lighthouse-report.json \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
+          
+          lighthouse "$FRONTEND_URL/doctors" \
+            --output=json \
+            --output-path=lighthouse-doctors-report.json \
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage"
+
+      - name: Analyze performance metrics
+        run: |
+          node -e "
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('lighthouse-report.json', 'utf8'));
+            const categories = report.categories;
+            
+            console.log('## 🚀 Performance Audit Results');
+            console.log('');
+            console.log('| Metric | Score | Status |');
+            console.log('|--------|-------|--------|');
+            
+            Object.entries(categories).forEach(([key, category]) => {
+              const score = Math.round(category.score * 100);
+              const status = score >= 90 ? '✅' : score >= 70 ? '⚠️' : '❌';
+              console.log(\`| \${category.title} | \${score} | \${status} |\`);
+            });
+            
+            // Check if any scores are below threshold
+            const performanceScore = categories.performance.score * 100;
+            if (performanceScore < 70) {
+              process.exit(1);
+            }
+          "
+
+      - name: Upload performance reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-reports-$(date +%Y%m%d)
+          path: lighthouse-*.json
+
+  # Job 5: Cleanup old resources
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: determine-tasks
+    if: needs.determine-tasks.outputs.run-cleanup == 'true'
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Cleanup old container images
+        run: |
+          # Keep only last 10 versions of each image
+          echo "Cleaning up old frontend images..."
+          gcloud container images list-tags gcr.io/${{ env.PROJECT_ID }}/book-a-doc-frontend \
+            --format="get(digest)" --limit=999 | tail -n +11 | \
+            xargs -I {} gcloud container images delete gcr.io/${{ env.PROJECT_ID }}/book-a-doc-frontend@{} --quiet || true
+          
+          echo "Cleaning up old backend images..."
+          gcloud container images list-tags gcr.io/${{ env.PROJECT_ID }}/book-a-doc-backend \
+            --format="get(digest)" --limit=999 | tail -n +11 | \
+            xargs -I {} gcloud container images delete gcr.io/${{ env.PROJECT_ID }}/book-a-doc-backend@{} --quiet || true
+
+      - name: Cleanup workflow artifacts
+        run: |
+          # GitHub API to cleanup old workflow runs (requires token with repo scope)
+          echo "Manual cleanup of workflow artifacts may be required"
+          echo "Consider implementing automated cleanup via GitHub API"
+
+  # Job 6: Backup important data
+  backup:
+    runs-on: ubuntu-latest
+    needs: determine-tasks
+    if: needs.determine-tasks.outputs.run-backup == 'true'
+    steps:
+      - name: Create database backup
+        run: |
+          # Create backup script
+          cat > backup.js << 'EOF'
+          const mongoose = require('mongoose');
+          const fs = require('fs');
+          
+          async function backup() {
+            await mongoose.connect(process.env.MONGODB_URI);
+            
+            const collections = await mongoose.connection.db.collections();
+            const backup = {};
+            
+            for (const collection of collections) {
+              const docs = await collection.find({}).toArray();
+              backup[collection.collectionName] = docs;
+            }
+            
+            fs.writeFileSync(`backup-${new Date().toISOString().split('T')[0]}.json`, 
+              JSON.stringify(backup, null, 2));
+            
+            console.log('Backup completed successfully');
+            await mongoose.disconnect();
+          }
+          
+          backup().catch(console.error);
+          EOF
+          
+          npm init -y
+          npm install mongoose
+          node backup.js
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+
+      - name: Upload backup to Cloud Storage
+        run: |
+          # Configure gcloud
+          echo '${{ secrets.GCP_SA_KEY }}' | base64 -d > gcp-key.json
+          gcloud auth activate-service-account --key-file gcp-key.json
+          
+          # Upload backup
+          BACKUP_FILE="backup-$(date +%Y-%m-%d).json"
+          gsutil cp "$BACKUP_FILE" "gs://${{ env.PROJECT_ID }}-backups/"
+          
+          # Set lifecycle policy to delete backups older than 30 days
+          echo '{
+            "rule": [{
+              "action": {"type": "Delete"},
+              "condition": {"age": 30}
+            }]
+          }' > lifecycle.json
+          
+          gsutil lifecycle set lifecycle.json "gs://${{ env.PROJECT_ID }}-backups/"
+
+  # Job 7: Generate summary report
+  generate-summary:
+    runs-on: ubuntu-latest
+    needs: [health-check, security-scan, performance-audit, cleanup, backup]
+    if: always()
+    steps:
+      - name: Create maintenance summary
+        run: |
+          echo "## 🔧 Scheduled Maintenance Summary" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Task Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Task | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Health Check | ${{ needs.health-check.result || 'Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result || 'Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Audit | ${{ needs.performance-audit.result || 'Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Cleanup | ${{ needs.cleanup.result || 'Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backup | ${{ needs.backup.result || 'Skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.health-check.result }}" = "failure" ] || \
+             [ "${{ needs.security-scan.result }}" = "failure" ] || \
+             [ "${{ needs.performance-audit.result }}" = "failure" ]; then
+            echo "⚠️ **Action Required:** Some maintenance tasks failed. Please review the logs." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **All maintenance tasks completed successfully.**" >> $GITHUB_STEP_SUMMARY
+          fi

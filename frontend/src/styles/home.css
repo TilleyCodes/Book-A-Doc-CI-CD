@@ -1,0 +1,143 @@
+.search-container {
+  position: relative;
+  width: 60vw;
+  margin: 0 auto;
+  max-width: 600px;
+  margin-bottom: 50px;
+}
+
+.input-label {
+  position: absolute;
+}
+
+.dropdown {
+  position: absolute; 
+  top: 100%;          
+  left: 0;
+  width: 100%;        
+  margin: 0;
+  padding: 0;
+  border-bottom-right-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+  list-style-type: none;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  z-index: 999;       
+}
+
+.dropdown li {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.dropdown li:hover {
+  background-color: #f0f0f0;
+}
+
+.main-option-container {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  margin: auto;
+  padding-top: 50px;
+  gap: 20px;
+}
+
+.main-option-feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--secondaryBG);
+  flex-grow: 1;
+  min-width: 250px;
+  max-width: 300px;
+  border-radius: 0.75rem;
+  margin: 10px;
+  animation: none;
+}
+
+.main-option-feature:hover {
+  animation: raise 0.3s ease forwards;
+}
+
+.main-option-feature:not(:hover) {
+  animation: lower 0.3s ease forwards;
+}
+
+.feature-icon {
+  width: 5rem;
+  height: auto;
+  padding: 20px;
+}
+
+.feature-link:visited {
+  color: var(--primaryFont);
+}
+
+#search-bar-label {
+  color: darkgray;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  .main-option-container {
+    width: 80vw;
+    padding-top: 20px;
+  }
+  
+  .search-container {
+    width: 70vw;
+    margin-bottom: 30px;
+  }
+  
+  .main-option-feature {
+    min-width: 220px;
+    max-width: 280px;
+  }
+  
+  .feature-icon {
+    width: 4.5rem;
+    padding: 15px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .search-container {
+    width: 90vw;
+    margin-bottom: 30px;
+  }
+  
+  .main-option-container {
+    width: 90vw;
+    gap: 15px;
+    padding-top: 20px;
+  }
+  
+  .main-option-feature {
+    min-width: 200px;
+    max-width: 250px;
+    margin: 5px;
+  }
+  
+  .feature-icon {
+    width: 4rem;
+    padding: 15px;
+  }
+  
+  .dropdown li {
+    padding: 0.4rem;
+    font-size: 0.9rem;
+  }
+  
+  #search-bar-label {
+    font-size: 14px;
+  }
+  
+  .main-option-feature h3 {
+    font-size: 1.1rem;
+    margin: 5px 0 10px 0;
+    padding: 0 5px;
+    text-align: center;
+  }
+}

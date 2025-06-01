@@ -1,0 +1,112 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: var(--secondaryBG);
+  padding: 20px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  color: var(--primaryText);
+  text-decoration: none;
+  padding: 10px;
+  transition: 0.3s;
+}
+
+.nav-links a:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+.burger-menu {
+  right: 30px;
+  display: none; 
+  font-size: 24px;
+  background: none;
+  border: none;
+  color: #656464;
+  cursor: pointer;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 15px;
+  }
+  
+  .nav-links {
+    gap: 15px;
+  }
+  
+  .nav-links a {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .burger-menu {
+    display: block;
+    font-size: 2.5rem;
+    padding-left: 340px;
+  }
+
+  .nav-links {
+    display: none; 
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    background: #333333e8;
+    text-align: center;
+    padding: 15px 0;
+    z-index: 10;
+  }
+
+  .nav-links.open {
+    display: flex;
+    z-index: 2;
+  }
+
+  .nav-links a {
+    padding: 12px;
+    display: block;
+    color: white;
+  }
+
+  .nav-links a:visited {
+    color: white;
+  }
+}
+
+@media (max-width: 620px) {
+  .navbar {
+    padding: 0;
+    padding-bottom: 20px;
+  }
+
+  .nav-links {
+    top: 130px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  button.burger-menu {
+    font-size: 2rem;
+  }
+  
+  .nav-links {
+    top: 110px;
+    padding: 10px 0;
+  }
+  
+  .nav-links a {
+    padding: 10px;
+    font-size: 0.85rem;
+  }
+}

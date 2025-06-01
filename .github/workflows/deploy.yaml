@@ -1,0 +1,276 @@
+name: Deploy to Cloud Platform
+
+on:
+  workflow_run:
+    workflows: ["Build and Test Application"]
+    types:
+      - completed
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deployment even if tests failed'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: book-a-doc
+  REGION: australia-southeast1
+
+jobs:
+  # Job 1: Prepare deployment
+  prepare:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.inputs.force_deploy == 'true' }}
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+      frontend-image: ${{ steps.get-images.outputs.frontend }}
+      backend-image: ${{ steps.get-images.outputs.backend }}
+      deploy-url: ${{ steps.set-env.outputs.deploy_url }}
+    steps:
+      - name: Determine deployment environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+          else
+            ENV="staging"
+          fi
+          echo "environment=$ENV" >> $GITHUB_OUTPUT
+          
+          if [ "$ENV" = "production" ]; then
+            echo "deploy_url=https://book-a-doc.com" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_url=https://staging.book-a-doc.com" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get latest Docker images
+        id: get-images
+        run: |
+          echo "frontend=${{ secrets.DOCKER_USERNAME }}/book-a-doc-frontend:latest" >> $GITHUB_OUTPUT
+          echo "backend=${{ secrets.DOCKER_USERNAME }}/book-a-doc-backend:latest" >> $GITHUB_OUTPUT
+
+  # Job 2: Deploy to Google Cloud Run
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: prepare
+    environment: ${{ needs.prepare.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker
+
+      - name: Pull and retag backend image
+        run: |
+          docker pull ${{ needs.prepare.outputs.backend-image }}
+          docker tag ${{ needs.prepare.outputs.backend-image }} gcr.io/${{ env.PROJECT_ID }}/book-a-doc-backend:${{ github.sha }}
+          docker push gcr.io/${{ env.PROJECT_ID }}/book-a-doc-backend:${{ github.sha }}
+
+      - name: Deploy backend to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }}-backend \
+            --image gcr.io/${{ env.PROJECT_ID }}/book-a-doc-backend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 3000 \
+            --memory 1Gi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 10 \
+            --set-env-vars="NODE_ENV=${{ needs.prepare.outputs.environment }}" \
+            --set-env-vars="MONGODB_URI=${{ secrets.MONGODB_URI }}" \
+            --set-env-vars="JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+            --set-env-vars="CORS_ORIGIN=${{ needs.prepare.outputs.deploy-url }}"
+
+      - name: Get backend service URL
+        id: backend-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }}-backend --region ${{ env.REGION }} --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+    outputs:
+      backend-url: ${{ steps.backend-url.outputs.url }}
+
+  # Job 3: Deploy frontend to Cloud Run
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy-backend]
+    environment: ${{ needs.prepare.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker
+
+      - name: Build production frontend with backend URL
+        run: |
+          docker build \
+            --build-arg VITE_API_URL=${{ needs.deploy-backend.outputs.backend-url }} \
+            -f frontend/Dockerfile.prod \
+            -t gcr.io/${{ env.PROJECT_ID }}/book-a-doc-frontend:${{ github.sha }} \
+            ./frontend
+
+      - name: Push frontend image
+        run: docker push gcr.io/${{ env.PROJECT_ID }}/book-a-doc-frontend:${{ github.sha }}
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE_NAME }}-frontend \
+            --image gcr.io/${{ env.PROJECT_ID }}/book-a-doc-frontend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 80 \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 5
+
+      - name: Get frontend service URL
+        id: frontend-url
+        run: |
+          URL=$(gcloud run services describe ${{ env.SERVICE_NAME }}-frontend --region ${{ env.REGION }} --format 'value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+    outputs:
+      frontend-url: ${{ steps.frontend-url.outputs.url }}
+
+  # Job 4: Configure Cloud SQL and other services
+  configure-services:
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy-backend]
+    if: needs.prepare.outputs.environment == 'production'
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Create Cloud Storage bucket for file uploads
+        run: |
+          gsutil mb -p ${{ env.PROJECT_ID }} -l ${{ env.REGION }} gs://${{ env.PROJECT_ID }}-uploads || true
+          gsutil iam ch allUsers:objectViewer gs://${{ env.PROJECT_ID }}-uploads
+
+      - name: Update backend with storage configuration
+        run: |
+          gcloud run services update ${{ env.SERVICE_NAME }}-backend \
+            --region ${{ env.REGION }} \
+            --update-env-vars="STORAGE_BUCKET=${{ env.PROJECT_ID }}-uploads"
+
+  # Job 5: Run deployment tests
+  verify-deployment:
+    runs-on: ubuntu-latest
+    needs: [deploy-frontend, deploy-backend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run smoke tests against deployed services
+        run: |
+          # Test backend health endpoint
+          curl -f ${{ needs.deploy-backend.outputs.backend-url }}/health || exit 1
+          
+          # Test frontend accessibility
+          curl -f ${{ needs.deploy-frontend.outputs.frontend-url }} || exit 1
+          
+          # Run API integration tests
+          cd frontend
+          VITE_API_URL=${{ needs.deploy-backend.outputs.backend-url }} npm run test:api
+
+      - name: Run performance tests
+        run: |
+          npx lighthouse ${{ needs.deploy-frontend.outputs.frontend-url }} \
+            --output=json \
+            --output-path=lighthouse-report.json \
+            --chrome-flags="--headless --no-sandbox"
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-report
+          path: lighthouse-report.json
+
+  # Job 6: Notify deployment status
+  notify:
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy-frontend, deploy-backend, verify-deployment]
+    if: always()
+    steps:
+      - name: Create deployment summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.prepare.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend URL:** ${{ needs.deploy-frontend.outputs.frontend-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend URL:** ${{ needs.deploy-backend.outputs.backend-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Status:** ${{ job.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit SHA:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Deployment failed. Check the logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Store deployment record
+        run: |
+          echo "{
+            \"deployment_id\": \"${{ github.run_id }}\",
+            \"environment\": \"${{ needs.prepare.outputs.environment }}\",
+            \"commit_sha\": \"${{ github.sha }}\",
+            \"frontend_url\": \"${{ needs.deploy-frontend.outputs.frontend-url }}\",
+            \"backend_url\": \"${{ needs.deploy-backend.outputs.backend-url }}\",
+            \"status\": \"${{ job.status }}\",
+            \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+          }" > deployment-record.json
+
+      - name: Upload deployment record
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-record
+          path: deployment-record.json
+          retention-days: 90

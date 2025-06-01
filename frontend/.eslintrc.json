@@ -1,0 +1,46 @@
+  {
+    "extends": ["airbnb", "airbnb/hooks"],
+    "rules": {
+      "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
+      "react/prop-types": "off", // Disable prop-types if not using them
+      "import/prefer-default-export": "off", // Allow named exports
+      "no-unused-vars": ["error", { "varsIgnorePattern": "^[A-Z_]" }],
+      "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
+      "react/react-in-jsx-scope": "off",
+      "implicit-arrow-linebreak": "off",
+      "function-paren-newline": "off",
+      "react/jsx-no-bind": "off",
+      "arrow-body-style": "off",
+      "operator-linebreak": "off",
+      "no-console": "off",
+      "object-curly-newline": "off",
+      "no-underscore-dangle": "off",
+      "jsx-a11y/label-has-associated-control": ["error", {
+        "assert": "either",
+        "depth": 3
+      }]
+    },
+    "env": {
+      "browser": true,
+      "node": true,
+      "es2021": true
+    },
+    "parserOptions": {
+      "ecmaVersion": "latest",
+      "ecmaFeatures": {
+        "jsx": true
+      },
+      "sourceType": "module"
+    },
+    "plugins": [
+      "react",
+      "react-hooks",
+      "react-refresh"
+    ],
+    "settings": {
+      "react": {
+        "version": "detect" // Automatically detect React version
+      }
+    },
+    "ignorePatterns": ["dist"]
+  }

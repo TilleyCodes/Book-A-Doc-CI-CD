@@ -1,0 +1,464 @@
+.medical-centres-container {
+  max-width: 650px;
+  align-items: center;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.mock-data-warning {
+  background-color: var(--warningBG);
+  color: var(--warningColor);
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+  border: 1px solid #ffeeba;
+}
+
+.mock-data-note {
+  background-color: var(--warningBG);
+  color: var(--warningColor);
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.medical-centres-title {
+  text-align: center;
+  margin-bottom: 10px;
+  color: var(--primaryText);
+  background-color: #e8ecf2;
+  padding: 15px;
+  border-radius: 10px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: 20px;
+}
+
+.medical-centres-description {
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--secondaryText);
+}
+
+.mc-search-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.mc-search-input {
+  width: 100%;
+  padding: 12px 40px 12px 40px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  font-size: 16px;
+  background-color: #f0f0f0;
+}
+
+.mc-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.mc-search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+}
+
+.mc-search-button {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: #ddd;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mc-search-button:hover {
+  background-color: #ccc;
+}
+
+.clear-search-button {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.clear-search-button:hover {
+  color: #333;
+}
+
+.filter-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.city-filter {
+  margin-left: 10px;
+  padding: 8px 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+.results-count {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.mc-back-to-top {
+  display: flex;
+  justify-content: flex-end;
+  margin: 20px 0;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--secondaryText);
+}
+
+.mc-back-to-top:hover {
+  color: var(--accent);
+}
+
+.centres-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  align-items: center;
+}
+
+.centre-card {
+  background-color: var(--cardBG);
+  border-radius: 10px;
+  padding: 20px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: center;
+  border: 1px solid transparent;
+  width: 100%;
+  max-width: 550px; 
+  margin: 0 auto;
+  padding-top: 1px;
+}
+
+.centre-card:hover {
+  box-shadow: var(--cardShadow);
+}
+
+.centre-card-selected {
+  border: 1px solid var(--secondaryBG);
+  box-shadow: var(--cardShadow);
+}
+
+.centre-icon {
+  margin-right: 20px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.centre-icon img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  padding-left: 75px;
+  padding-top: 150px;
+}
+
+.centre-content {
+  flex: 1;
+}
+
+.centre-name {
+  color: var(--primaryText);
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 1.1rem;
+  margin-top: -30px;
+  position: static; 
+}
+
+.centre-details {
+  margin-bottom: 10px;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+.detail-label {
+  font-weight: bold;
+  color: var(--cardText);
+}
+
+.centre-info-line {
+  margin: 5px 0;
+  color: #555;
+}
+
+.centre-actions {
+  display: flex;
+  width: 100%;
+  margin-top: 15px;
+  justify-content: center;
+}
+
+.mc-btn {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.view-doctors-btn {
+  background-color: var(--secondaryBG);
+  color: black;
+  font-weight: bold;
+  width: auto;
+  min-width: 120px;
+  max-width: 180px;
+  padding: 8px 12px;
+}
+
+.book-appointment-btn {
+  background-color: var(--accent);
+  color: white;
+  font-weight: bold;
+}
+
+.view-doctors-btn:hover, .book-appointment-btn:hover {
+  opacity: 0.9;
+}
+
+.no-centres-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 18px;
+  color: #666;
+}
+
+.error-container {
+  color: var(--errorColor);
+  text-align: center;
+}
+
+/* Login Prompt Modal */
+.login-prompt-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.login-prompt-content {
+  background-color: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  text-align: center;
+}
+
+.login-prompt-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.login-prompt-buttons {
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.login-btn, .signup-btn {
+  padding: 10px 20px;
+  width: 45%;
+  font-weight: bold;
+}
+
+.login-btn {
+  background-color: var(--secondaryBG);
+  color: black;
+}
+
+.signup-btn {
+  background-color: var(--accent);
+  color: white;
+}
+
+/* Tablet styles */
+@media (max-width: 768px) {
+  .centres-grid {
+    width: 100%;
+  }
+  
+  .centre-card {
+    flex-direction: column;
+    width: 90%;
+    padding: 15px;
+  }
+  
+  .centre-icon {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
+  .centre-actions {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .mc-btn {
+    width: 100%;
+    max-width: 200px;
+  }
+  
+  .filter-section {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .city-filter {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .mc-search-input {
+    padding: 10px 40px;
+    font-size: 14px;
+  }
+
+  .medical-centres-title {
+    font-size: 1.2rem;
+    padding: 12px;
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .medical-centres-container {
+    padding: 10px;
+    width: 90%;
+    padding-left: 5px;
+  }
+  
+  .centre-card {
+    padding: 12px;
+    width: 95%;
+    margin-bottom: 10px;
+  }
+  
+  .centre-name {
+    font-size: 1rem;
+    margin-top: -20px;
+  }
+  
+  .centre-details {
+    font-size: 0.85rem;
+  }
+  
+  .centre-actions {
+    margin-top: 10px;
+  }
+  
+  .login-prompt-buttons {
+    flex-direction: column;
+  }
+  
+  .login-btn, .signup-btn {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  
+  .mc-search-input {
+    padding: 8px 35px;
+    font-size: 13px;
+  }
+  
+  .mc-search-icon {
+    width: 16px;
+    height: 16px;
+    left: 12px;
+  }
+  
+  .mc-search-button {
+    width: 25px;
+    height: 25px;
+  }
+  
+  .clear-search-button {
+    right: 35px;
+    font-size: 16px;
+  }
+  
+  .loading-container, .error-container, .no-centres-message {
+    padding: 20px;
+    font-size: 16px;
+  }
+  
+  .centre-icon img {
+    padding-left: 45px;
+    padding-top: 100px;
+  }
+  
+  .medical-centres-title {
+    font-size: 1.1rem;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .mock-data-warning, .mock-data-note {
+    font-size: 12px;
+    padding: 8px;
+  }
+}
