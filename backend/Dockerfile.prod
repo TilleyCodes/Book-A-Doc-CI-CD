@@ -1,26 +1,31 @@
-FROM node:alpine AS builder
+# Production Dockerfile for Backend
+FROM node:18-alpine
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
 
-RUN npm ci --only=production
+# Install production dependencies only
+RUN npm ci --only=production && npm cache clean --force
 
+# Copy application code
 COPY . .
 
-RUN npm run build
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodeuser -u 1001
 
-FROM node:alpine
+# Change ownership of app directory
+RUN chown -R nodeuser:nodejs /app
+USER nodeuser
 
-WORKDIR /app
-
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package.json ./
-
-ENV NODE_ENV=production
-
+# Expose port
 EXPOSE 3000
 
-RUN npm install -g pm2
-CMD ["pm2-runtime", "dist/server.js"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# Start application
+CMD ["npm", "start"]
