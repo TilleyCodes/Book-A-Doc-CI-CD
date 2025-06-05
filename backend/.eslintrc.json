@@ -8,16 +8,43 @@
   },
   "extends": ["airbnb-base"],
   "parserOptions": {
-    "ecmaVersion": 2020
+    "ecmaVersion": 2020,
+    "sourceType": "module"
   },
   "rules": {
-    "no-console": "off", // for Node 
-    "consistent-return": "off", // For Express route handlers
-    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }], // For Express middleware
-    "no-underscore-dangle": "off", // For MongoDB methods
-    "import/no-unresolved": ["error", { "commonjs": true }], // For Node 
+    "no-console": "off",
+    "consistent-return": "off",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }],
+    "no-underscore-dangle": "off",
+    "import/no-unresolved": ["error", { "commonjs": true }],
     "import/no-extraneous-dependencies": ["error", {
-      "devDependencies": ["**/*.test.js", "**/*.spec.js", "**/tests/**", "**/src/tests/**"]
-    }] // to allow dev imports for testing
-  }
+      "devDependencies": [
+        "**/*.test.js", 
+        "**/*.spec.js", 
+        "**/tests/**", 
+        "**/src/tests/**",
+        "**/*.config.js",
+        "**/*.config.ts"
+      ]
+    }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.js", "**/*.spec.js", "**/tests/**/*.js"],
+      "env": {
+        "jest": true,
+        "node": true
+      },
+      "globals": {
+        "describe": "readonly",
+        "it": "readonly",
+        "expect": "readonly",
+        "beforeEach": "readonly",
+        "afterEach": "readonly",
+        "beforeAll": "readonly",
+        "afterAll": "readonly",
+        "test": "readonly"
+      }
+    }
+  ]
 }

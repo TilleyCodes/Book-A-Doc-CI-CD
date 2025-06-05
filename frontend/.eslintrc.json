@@ -1,46 +1,116 @@
-  {
-    "extends": ["airbnb", "airbnb/hooks"],
-    "rules": {
-      "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
-      "react/prop-types": "off", // Disable prop-types if not using them
-      "import/prefer-default-export": "off", // Allow named exports
-      "no-unused-vars": ["error", { "varsIgnorePattern": "^[A-Z_]" }],
-      "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
-      "react/react-in-jsx-scope": "off",
-      "implicit-arrow-linebreak": "off",
-      "function-paren-newline": "off",
-      "react/jsx-no-bind": "off",
-      "arrow-body-style": "off",
-      "operator-linebreak": "off",
-      "no-console": "off",
-      "object-curly-newline": "off",
-      "no-underscore-dangle": "off",
-      "jsx-a11y/label-has-associated-control": ["error", {
-        "assert": "either",
-        "depth": 3
-      }]
+{
+  "extends": ["airbnb", "airbnb/hooks"],
+  "rules": {
+    "react/jsx-filename-extension": [1, { "extensions": [".js", ".jsx"] }],
+    "react/prop-types": "off",
+    "import/prefer-default-export": "off",
+    "no-unused-vars": ["error", { "varsIgnorePattern": "^[A-Z_]" }],
+    "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
+    "react/react-in-jsx-scope": "off",
+    "implicit-arrow-linebreak": "off",
+    "function-paren-newline": "off",
+    "react/jsx-no-bind": "off",
+    "arrow-body-style": "off",
+    "operator-linebreak": "off",
+    "no-console": "off",
+    "object-curly-newline": "off",
+    "no-underscore-dangle": "off",
+    "jsx-a11y/label-has-associated-control": ["error", {
+      "assert": "either",
+      "depth": 3
+    }],
+    "import/no-extraneous-dependencies": ["error", {
+      "devDependencies": [
+        "**/*.test.js",
+        "**/*.test.jsx", 
+        "**/*.spec.js",
+        "**/*.spec.jsx",
+        "**/tests/**",
+        "**/src/tests/**",
+        "cypress/**",
+        "**/*.config.js",
+        "**/*.config.ts",
+        "vite.config.js",
+        "vitest.config.js",
+        "cypress.config.js"
+      ]
+    }]
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2021": true
+  },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "ecmaFeatures": {
+      "jsx": true
     },
-    "env": {
-      "browser": true,
-      "node": true,
-      "es2021": true
-    },
-    "parserOptions": {
-      "ecmaVersion": "latest",
-      "ecmaFeatures": {
-        "jsx": true
+    "sourceType": "module"
+  },
+  "plugins": [
+    "react",
+    "react-hooks",
+    "react-refresh"
+  ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "ignorePatterns": [
+    "dist",
+    "build",
+    "node_modules",
+    "coverage",
+    "cypress/**/*",
+    "cypress.config.js"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.test.js", "**/*.test.jsx", "**/*.spec.js", "**/*.spec.jsx", "**/tests/**/*.js", "**/tests/**/*.jsx"],
+      "env": {
+        "jest": true,
+        "node": true
       },
-      "sourceType": "module"
-    },
-    "plugins": [
-      "react",
-      "react-hooks",
-      "react-refresh"
-    ],
-    "settings": {
-      "react": {
-        "version": "detect" // Automatically detect React version
+      "globals": {
+        "vi": "readonly",
+        "describe": "readonly",
+        "it": "readonly",
+        "expect": "readonly",
+        "beforeEach": "readonly",
+        "afterEach": "readonly",
+        "beforeAll": "readonly",
+        "afterAll": "readonly",
+        "test": "readonly"
+      },
+      "rules": {
+        "no-unused-vars": "off",
+        "react/display-name": "off"
       }
     },
-    "ignorePatterns": ["dist"]
-  }
+    {
+      "files": ["cypress/**/*.js"],
+      "env": {
+        "browser": true,
+        "node": true
+      },
+      "globals": {
+        "cy": "readonly",
+        "Cypress": "readonly",
+        "describe": "readonly",
+        "it": "readonly",
+        "expect": "readonly",
+        "beforeEach": "readonly",
+        "afterEach": "readonly",
+        "before": "readonly",
+        "after": "readonly"
+      },
+      "rules": {
+        "import/no-extraneous-dependencies": "off",
+        "no-unused-vars": "off",
+        "no-undef": "off"
+      }
+    }
+  ]
+}
