@@ -150,7 +150,12 @@ export function Doctors() {
   };
 
   if (loading) {
-    return <div className="loader" />;
+    return (
+      <div className="doctors-loading-container">
+        <div className="loader" data-testid="doctors-loader" />
+        <p>Loading doctors...</p>
+      </div>
+    );
   }
 
   return (

@@ -59,9 +59,9 @@ describe('LoginForm component', () => {
       </BrowserRouter>,
     );
 
-    // Check for email and password fields
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    // Check for email and password fields using more specific selectors
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
 
     // Check for login button
     expect(screen.getByRole('button', { name: /login/i })).toBeInTheDocument();
@@ -90,12 +90,12 @@ describe('LoginForm component', () => {
       </BrowserRouter>,
     );
 
-    // Fill in the form
-    fireEvent.change(screen.getByLabelText(/email/i), {
+    // Fill in the form using exact label text
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'test@example.com' },
     });
 
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password123' },
     });
 
@@ -128,19 +128,19 @@ describe('LoginForm component', () => {
       </BrowserRouter>,
     );
 
-    // Fill in the form with incorrect credentials
-    fireEvent.change(screen.getByLabelText(/email/i), {
+    // Fill in the form with incorrect credentials using exact label text
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'wrong@example.com' },
     });
 
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'wrongpassword' },
     });
 
     // Submit the form
     fireEvent.click(screen.getByRole('button', { name: /login/i }));
 
-    // Wait for any error message to appear (not checking specific text)
+    // Wait for any error message to appear (checking for specific class)
     await waitFor(() => {
       expect(screen.getByText((content, element) => {
         return element.tagName.toLowerCase() === 'p' &&

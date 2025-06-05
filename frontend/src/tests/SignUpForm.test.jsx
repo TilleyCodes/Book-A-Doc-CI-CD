@@ -64,15 +64,15 @@ describe('SignUpForm component', () => {
       </BrowserRouter>,
     );
 
-    // Check all required input fields
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/first name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/last name/i)).toBeInTheDocument();
+    // Check all required input fields using exact label text
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('First Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Last Name')).toBeInTheDocument();
     expect(screen.getByTestId('date-picker')).toBeInTheDocument();
-    expect(screen.getByLabelText(/street/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/city/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/phone number/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Street')).toBeInTheDocument();
+    expect(screen.getByLabelText('City')).toBeInTheDocument();
+    expect(screen.getByLabelText('Phone Number')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
 
     // Check for checkbox and submit button
     expect(screen.getByText(/i agree to the/i)).toBeInTheDocument();
@@ -97,16 +97,16 @@ describe('SignUpForm component', () => {
       </BrowserRouter>,
     );
 
-    // Fill all required fields
-    fireEvent.change(screen.getByLabelText(/email/i), {
+    // Fill all required fields using exact label text
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'test@example.com' },
     });
 
-    fireEvent.change(screen.getByLabelText(/first name/i), {
+    fireEvent.change(screen.getByLabelText('First Name'), {
       target: { value: 'John' },
     });
 
-    fireEvent.change(screen.getByLabelText(/last name/i), {
+    fireEvent.change(screen.getByLabelText('Last Name'), {
       target: { value: 'Doe' },
     });
 
@@ -118,19 +118,19 @@ describe('SignUpForm component', () => {
       target: { value: twentyYearsAgo.toISOString().split('T')[0] },
     });
 
-    fireEvent.change(screen.getByLabelText(/street/i), {
+    fireEvent.change(screen.getByLabelText('Street'), {
       target: { value: '123 Test Street' },
     });
 
-    fireEvent.change(screen.getByLabelText(/city/i), {
+    fireEvent.change(screen.getByLabelText('City'), {
       target: { value: 'Test City' },
     });
 
-    fireEvent.change(screen.getByLabelText(/phone number/i), {
+    fireEvent.change(screen.getByLabelText('Phone Number'), {
       target: { value: '0400123456' },
     });
 
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password1234' },
     });
 
@@ -163,16 +163,16 @@ describe('SignUpForm component', () => {
       </BrowserRouter>,
     );
 
-    // Fill all required fields
-    fireEvent.change(screen.getByLabelText(/email/i), {
+    // Fill all required fields using exact label text
+    fireEvent.change(screen.getByLabelText('Email'), {
       target: { value: 'existing@example.com' },
     });
 
-    fireEvent.change(screen.getByLabelText(/first name/i), {
+    fireEvent.change(screen.getByLabelText('First Name'), {
       target: { value: 'John' },
     });
 
-    fireEvent.change(screen.getByLabelText(/last name/i), {
+    fireEvent.change(screen.getByLabelText('Last Name'), {
       target: { value: 'Doe' },
     });
 
@@ -184,19 +184,19 @@ describe('SignUpForm component', () => {
       target: { value: twentyYearsAgo.toISOString().split('T')[0] },
     });
 
-    fireEvent.change(screen.getByLabelText(/street/i), {
+    fireEvent.change(screen.getByLabelText('Street'), {
       target: { value: '123 Test Street' },
     });
 
-    fireEvent.change(screen.getByLabelText(/city/i), {
+    fireEvent.change(screen.getByLabelText('City'), {
       target: { value: 'Test City' },
     });
 
-    fireEvent.change(screen.getByLabelText(/phone number/i), {
+    fireEvent.change(screen.getByLabelText('Phone Number'), {
       target: { value: '0400123456' },
     });
 
-    fireEvent.change(screen.getByLabelText(/password/i), {
+    fireEvent.change(screen.getByLabelText('Password'), {
       target: { value: 'password1234' },
     });
 

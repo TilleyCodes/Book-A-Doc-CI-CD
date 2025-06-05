@@ -31,8 +31,14 @@ const validatePatientData = (req, res, next) => {
   if (!lastName?.trim()) {
     errors.push('Last name is required');
   }
-  if (!email?.trim()) {
+  if (!isValidString(email)) {
     errors.push('Email is required');
+  } else {
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      errors.push('Please provide a valid email address');
+    }
   }
   if (!dateOfBirth) {
     errors.push('Date of birth is required');

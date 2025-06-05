@@ -12,12 +12,17 @@ const DoctorAvailability = require('../models/doctorAvailability');
 
 const doctorRouter = express.Router();
 
+// Helper function to safely check if value exists and is a non-empty string
+const isValidString = (value) => {
+  return typeof value === 'string' && value.trim().length > 0;
+};
+
 // Validation middleware
 const validateDoctorData = (req, res, next) => {
   const { doctorName, specialtyId } = req.body;
   const errors = [];
 
-  if (!doctorName?.trim()) {
+  if (!isValidString(doctorName)) {
     errors.push('Doctor name is required');
   }
   if (!specialtyId) {
@@ -42,8 +47,25 @@ doctorRouter.get('/', errorHandler(async (req, res) => {
 
 // GET a single doctor - http://localhost:3000/doctors/_id
 doctorRouter.get('/:doctorId', errorHandler(async (req, res) => {
-  const doctor = await getDoctor(req.params.doctorId);
-  res.status(200).json(doctor);
+  try {
+    const doctor = await getDoctor(req.params.doctorId);
+    if (!doctor) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Doctor not found',
+      });
+    }
+    res.status(200).json(doctor);
+  } catch (error) {
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid doctor ID format',
+      });
+    }
+    throw error;
+  }
 }));
 
 // CREATE new doctor - http://localhost:3000/doctors
@@ -58,28 +80,78 @@ doctorRouter.post('/', validateDoctorData, errorHandler(async (req, res) => {
 
 // PATCH update doctor - http://localhost:3000/doctors/_id
 doctorRouter.patch('/:doctorId', auth, validateDoctorData, errorHandler(async (req, res) => {
-  const bodyData = {
-    doctorName: req.body.doctorName,
-    specialtyId: req.body.specialtyId,
-  };
-  const updatedDoctor = await updateDoctor(req.params.doctorId, bodyData);
-  res.status(200).json(updatedDoctor);
+  try {
+    const bodyData = {
+      doctorName: req.body.doctorName,
+      specialtyId: req.body.specialtyId,
+    };
+    const updatedDoctor = await updateDoctor(req.params.doctorId, bodyData);
+    if (!updatedDoctor) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Doctor not found',
+      });
+    }
+    res.status(200).json(updatedDoctor);
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid doctor ID format',
+      });
+    }
+    throw error;
+  }
 }));
 
 // DELETE doctor - http://localhost:3000/doctors/_id
 doctorRouter.delete('/:doctorId', auth, errorHandler(async (req, res) => {
-  const deletedDoctor = await deleteDoctor(req.params.doctorId);
-  res.status(200).json(deletedDoctor);
+  try {
+    const deletedDoctor = await deleteDoctor(req.params.doctorId);
+    if (!deletedDoctor) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Doctor not found',
+      });
+    }
+    res.status(200).json(deletedDoctor);
+  } catch (error) {
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid doctor ID format',
+      });
+    }
+    throw error;
+  }
 }));
 
 // GET doctor availabilities - http://localhost:3000/doctors/:doctorId/availabilities
 doctorRouter.get('/:doctorId/availabilities', errorHandler(async (req, res) => {
   const { doctorId } = req.params;
   const { date } = req.query;
+
+  // Validate input parameters
+  if (!isValidString(doctorId)) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Doctor ID is required',
+    });
+  }
+
   if (!date) {
     return res.status(400).json({
       status: 'error',
       message: 'Date parameter is required',
+    });
+  }
+
+  // Validate date format
+  const dateObj = new Date(date);
+  if (isNaN(dateObj.getTime())) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Invalid date format',
     });
   }
 
@@ -91,7 +163,7 @@ doctorRouter.get('/:doctorId/availabilities', errorHandler(async (req, res) => {
       .populate({
         path: 'availabilityId',
         match: {
-          date: new Date(date),
+          date: dateObj,
           isBooked: false, // Only show available slots
         },
         select: 'date startTime endTime',
@@ -120,6 +192,14 @@ doctorRouter.get('/:doctorId/availabilities', errorHandler(async (req, res) => {
 
     return res.status(200).json(validAvailabilities);
   } catch (error) {
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid doctor ID format',
+      });
+    }
+
     return res.status(500).json({
       status: 'error',
       message: 'Error fetching doctor availabilities',

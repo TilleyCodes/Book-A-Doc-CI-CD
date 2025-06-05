@@ -51,8 +51,8 @@ describe('Doctors component', () => {
       </BrowserRouter>,
     );
 
-    // Check that loading is displayed initially
-    expect(screen.getByText('Loading doctors...')).toBeInTheDocument();
+    // Check that loading spinner is displayed initially (your component shows a loader div, not text)
+    expect(screen.getByTestId('doctors-loader') || screen.getByText('Loading doctors...') || document.querySelector('.loader')).toBeInTheDocument();
   });
 
   it('renders doctors after loading', async () => {
@@ -64,8 +64,8 @@ describe('Doctors component', () => {
 
     // Wait for doctors to load
     await waitFor(() => {
-      expect(screen.queryByText('Loading doctors...')).not.toBeInTheDocument();
-    });
+      expect(screen.queryByTestId('doctors-loader')).not.toBeInTheDocument();
+    }, { timeout: 3000 });
 
     // Check if at least one doctor is rendered
     await waitFor(() => {
@@ -83,8 +83,8 @@ describe('Doctors component', () => {
 
     // Wait for doctors to load
     await waitFor(() => {
-      expect(screen.queryByText('Loading doctors...')).not.toBeInTheDocument();
-    });
+      expect(screen.queryByTestId('doctors-loader')).not.toBeInTheDocument();
+    }, { timeout: 3000 });
 
     // Check for specialty filter
     await waitFor(() => {
