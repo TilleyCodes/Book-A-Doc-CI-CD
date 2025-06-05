@@ -36,7 +36,7 @@ beforeAll(() => {
       status: 200,
       json: () => Promise.resolve({}),
       text: () => Promise.resolve(''),
-    })
+    }),
   );
 
   // Ensure fetch has mock methods
@@ -61,12 +61,12 @@ afterEach(() => {
   // Clean up after each test
   cleanup();
   vi.clearAllMocks();
-  
+
   // Reset fetch mock
   if (global.fetch && global.fetch.mockClear) {
     global.fetch.mockClear();
   }
-  
+
   // Clear localStorage
   if (window.localStorage.clear) {
     window.localStorage.clear();
