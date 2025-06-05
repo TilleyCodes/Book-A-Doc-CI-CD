@@ -10,7 +10,7 @@
     "lint:fix": "./node_modules/.bin/eslint . --fix",
     "preview": "./node_modules/.bin/vite preview",
     "test": "./node_modules/.bin/vitest run",
-    "test:ci": "./node_modules/.bin/vitest run --coverage --reporter=verbose",
+    "test:ci": "./node_modules/.bin/vitest run --coverage --reporter=verbose --coverage.thresholds.lines=30 --coverage.thresholds.functions=30 --coverage.thresholds.statements=30 --coverage.thresholds.branches=30",
     "test:watch": "./node_modules/.bin/vitest",
     "test:ui": "./node_modules/.bin/vitest --ui",
     "test:coverage": "./node_modules/.bin/vitest run --coverage",
