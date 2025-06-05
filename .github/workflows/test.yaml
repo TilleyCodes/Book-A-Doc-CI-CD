@@ -129,7 +129,7 @@ jobs:
         run: |
           cd backend
           npm start &
-          sleep 10
+          npx wait-on http://localhost:3000 --timeout 30000
         env:
           NODE_ENV: test
           MONGODB_URI: mongodb://localhost:27017/e2e_test_db

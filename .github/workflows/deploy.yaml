@@ -73,6 +73,28 @@ jobs:
             --type "SecureString" \
             --overwrite || true
 
+      # Create security groups for network access
+      - name: Create security groups
+        run: |
+          VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text)
+          
+          BACKEND_SG=$(aws ec2 create-security-group \
+            --group-name book-a-doc-backend-sg \
+            --description "Security group for backend" \
+            --vpc-id $VPC_ID \
+            --query 'GroupId' --output text 2>/dev/null || \
+            aws ec2 describe-security-groups \
+              --filters "Name=group-name,Values=book-a-doc-backend-sg" \
+              --query 'SecurityGroups[0].GroupId' --output text)
+          
+          aws ec2 authorize-security-group-ingress \
+            --group-id $BACKEND_SG \
+            --protocol tcp \
+            --port 3000 \
+            --cidr 0.0.0.0/0 2>/dev/null || true
+          
+          echo "BACKEND_SG=$BACKEND_SG" >> $GITHUB_ENV
+
       # Deploy backend service
       - name: Deploy backend to ECS
         run: |
@@ -142,7 +164,7 @@ jobs:
               --task-definition book-a-doc-backend \
               --desired-count 1 \
               --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],assignPublicIp=ENABLED}"
+              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$BACKEND_SG],assignPublicIp=ENABLED}"
           fi
 
       # Deploy frontend service

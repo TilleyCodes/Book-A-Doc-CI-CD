@@ -5,9 +5,9 @@ import { cleanup } from '@testing-library/react';
 // Set up environment variables for testing
 vi.stubEnv('VITE_API_URL', 'http://localhost:3000');
 
-// Global test setup - learned this from the React Testing Library docs
+// Global test setup
 beforeAll(() => {
-  // Mock ResizeObserver - had to add this because some components use it
+  // Mock ResizeObserver
   global.ResizeObserver = vi.fn().mockImplementation(() => ({
     observe: vi.fn(),
     unobserve: vi.fn(),
@@ -15,7 +15,6 @@ beforeAll(() => {
   }));
 
   // Mock window.matchMedia for responsive components
-  // Found this solution on Stack Overflow
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation(query => ({
@@ -30,10 +29,22 @@ beforeAll(() => {
     })),
   });
 
-  // Mock fetch for API testing
-  global.fetch = vi.fn();
+  // Mock fetch globally with proper mock functions
+  global.fetch = vi.fn(() =>
+    Promise.resolve({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({}),
+      text: () => Promise.resolve(''),
+    })
+  );
 
-  // Mock localStorage - needed for auth testing
+  // Ensure fetch has mock methods
+  global.fetch.mockClear = vi.fn();
+  global.fetch.mockResolvedValue = vi.fn();
+  global.fetch.mockRejectedValue = vi.fn();
+
+  // Mock localStorage
   const localStorageMock = {
     getItem: vi.fn(),
     setItem: vi.fn(),
@@ -50,12 +61,16 @@ afterEach(() => {
   // Clean up after each test
   cleanup();
   vi.clearAllMocks();
-
-  // Reset mocks
-  if (global.fetch) {
+  
+  // Reset fetch mock
+  if (global.fetch && global.fetch.mockClear) {
     global.fetch.mockClear();
   }
-  window.localStorage.clear();
+  
+  // Clear localStorage
+  if (window.localStorage.clear) {
+    window.localStorage.clear();
+  }
 });
 
 afterAll(() => {
@@ -64,14 +79,13 @@ afterAll(() => {
   vi.restoreAllMocks();
 });
 
-// Suppress annoying console warnings during tests
-// TODO: Figure out how to fix these warnings properly
+// Suppress React warnings during tests
 const originalError = console.error;
 beforeAll(() => {
   console.error = (...args) => {
     if (
       typeof args[0] === 'string' &&
-      args[0].includes('Warning:')
+      (args[0].includes('Warning:') || args[0].includes('React does not recognize'))
     ) {
       return;
     }

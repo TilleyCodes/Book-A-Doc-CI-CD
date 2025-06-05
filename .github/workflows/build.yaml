@@ -163,6 +163,13 @@ jobs:
           aws ecr create-repository --repository-name book-a-doc-backend || echo "Backend repo already exists"
 
       # Create production environment file
+      - name: Create frontend production environment file
+        run: |
+          cd frontend
+          cat > .env.production << EOF
+          VITE_API_URL=https://api.book-a-doc.com
+          EOF
+
       - name: Create production environment file
         run: |
           cd backend
@@ -177,7 +184,9 @@ jobs:
       - name: Build frontend Docker image
         run: |
           cd frontend
-          docker build -f Dockerfile.prod -t $ECR_REGISTRY/book-a-doc-frontend:latest .
+          docker build -f Dockerfile.prod \
+            --build-arg VITE_API_URL=https://api.book-a-doc.com \
+            -t $ECR_REGISTRY/book-a-doc-frontend:latest .
           docker push $ECR_REGISTRY/book-a-doc-frontend:latest
 
       # Build backend image
@@ -192,4 +201,3 @@ jobs:
           echo "Build completed successfully!"
           echo "Frontend image: $ECR_REGISTRY/book-a-doc-frontend:latest"
           echo "Backend image: $ECR_REGISTRY/book-a-doc-backend:latest"
-          

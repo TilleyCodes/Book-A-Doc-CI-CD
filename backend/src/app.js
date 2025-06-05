@@ -48,6 +48,14 @@ app.use('/availabilities', availabilityRouter);
 app.use('/bookings', bookingRouter);
 app.use('/doctorAvailabilities', doctorAvailabilityRouter);
 
+// Health check endpoint for AWS ECS and CI/CD
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({
