@@ -91,6 +91,7 @@ jobs:
         run: |
           cd frontend
           npm run lint
+        continue-on-error: false
 
       # Backend tests
       - name: Run backend tests
@@ -100,11 +101,13 @@ jobs:
         env:
           NODE_ENV: test
           MONGODB_URI: mongodb://localhost:27017/test_db
+          JWT_SECRET: test-jwt-secret
 
       - name: Lint backend code
         run: |
           cd backend
           npm run lint
+        continue-on-error: false
 
       # Save test results
       - name: Upload test coverage
@@ -170,7 +173,7 @@ jobs:
           VITE_API_URL=https://api.book-a-doc.com
           EOF
 
-      - name: Create production environment file
+      - name: Create backend production environment file
         run: |
           cd backend
           cat > .env.production << EOF
@@ -201,3 +204,4 @@ jobs:
           echo "Build completed successfully!"
           echo "Frontend image: $ECR_REGISTRY/book-a-doc-frontend:latest"
           echo "Backend image: $ECR_REGISTRY/book-a-doc-backend:latest"
+          

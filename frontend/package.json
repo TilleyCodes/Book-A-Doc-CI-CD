@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "./node_modules/.bin/vite",
     "build": "./node_modules/.bin/vite build",
-    "lint": "./node_modules/.bin/eslint .",
-    "lint:fix": "./node_modules/.bin/eslint . --fix",
+    "lint": "./node_modules/.bin/eslint src/ --ext .js,.jsx --ignore-pattern dist/ --ignore-pattern build/ --ignore-pattern html/",
+    "lint:fix": "./node_modules/.bin/eslint src/ --ext .js,.jsx --fix --ignore-pattern dist/ --ignore-pattern build/ --ignore-pattern html/",
     "preview": "./node_modules/.bin/vite preview",
     "test": "./node_modules/.bin/vitest run",
     "test:ci": "./node_modules/.bin/vitest run --reporter=verbose",

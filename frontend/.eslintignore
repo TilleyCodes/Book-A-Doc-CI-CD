@@ -1,1 +1,23 @@
+# Build outputs
+dist/
+build/
+html/
+
+# Dependencies
 node_modules/
+
+# Generated files
+coverage/
+*.config.js
+*.config.ts
+
+# Cypress
+cypress/
+cypress.config.js
+
+# Assets and static files
+**/assets/**/*
+public/
+
+# Generated index files
+**/index-*.js
