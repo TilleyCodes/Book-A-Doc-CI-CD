@@ -12,6 +12,8 @@ const auth = require('../middleware/authMiddleware');
 
 const patientRouter = express.Router();
 
+const isValidString = (str) => typeof str === 'string' && str.trim().length > 0;
+
 // Validation middleware
 const validatePatientData = (req, res, next) => {
   const {

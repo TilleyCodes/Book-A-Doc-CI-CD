@@ -13,9 +13,7 @@ const DoctorAvailability = require('../models/doctorAvailability');
 const doctorRouter = express.Router();
 
 // Helper function to safely check if value exists and is a non-empty string
-const isValidString = (value) => {
-  return typeof value === 'string' && value.trim().length > 0;
-};
+const isValidString = (value) => typeof value === 'string' && value.trim().length > 0;
 
 // Validation middleware
 const validateDoctorData = (req, res, next) => {
@@ -148,7 +146,7 @@ doctorRouter.get('/:doctorId/availabilities', errorHandler(async (req, res) => {
 
   // Validate date format
   const dateObj = new Date(date);
-  if (isNaN(dateObj.getTime())) {
+  if (Number.isNaN(dateObj.getTime())) {
     return res.status(400).json({
       status: 'error',
       message: 'Invalid date format',

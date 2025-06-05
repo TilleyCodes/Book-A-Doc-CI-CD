@@ -8,13 +8,13 @@ beforeAll(async () => {
   // Suppress console output during tests
   const originalLog = console.log;
   const originalError = console.error;
-  
+
   console.log = (...args) => {
     if (!args[0]?.includes?.('MongoMemoryServer')) {
       originalLog.apply(console, args);
     }
   };
-  
+
   console.error = (...args) => {
     if (!args[0]?.includes?.('deprecated') && !args[0]?.includes?.('Warning')) {
       originalError.apply(console, args);
@@ -28,7 +28,7 @@ afterAll(async () => {
   if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
-  
+
   if (mongoServer) {
     await mongoServer.stop();
   }
@@ -38,7 +38,7 @@ afterAll(async () => {
 afterEach(async () => {
   // Clear all test data
   if (mongoose.connection.readyState === 1) {
-    const collections = mongoose.connection.collections;
+    const { collections } = mongoose.connection;
     for (const key in collections) {
       await collections[key].deleteMany({});
     }
@@ -55,21 +55,21 @@ global.testUtils = {
   createTestUser: () => ({
     email: 'test@example.com',
     password: 'testPassword123',
-    name: 'Test User'
+    name: 'Test User',
   }),
-  
+
   createTestDoctor: () => ({
     name: 'Dr. Test',
     specialty: 'General Practice',
     email: 'doctor@test.com',
-    availability: []
+    availability: [],
   }),
-  
+
   createTestBooking: () => ({
     patientId: new mongoose.Types.ObjectId(),
     doctorId: new mongoose.Types.ObjectId(),
     date: new Date(),
     time: '10:00',
-    status: 'scheduled'
-  })
+    status: 'scheduled',
+  }),
 };

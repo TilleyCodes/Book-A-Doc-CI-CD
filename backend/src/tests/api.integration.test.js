@@ -11,12 +11,12 @@ describe('API Integration Tests', () => {
     // Set up test database
     mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
-    
+
     // Disconnect from any existing connection
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
-    
+
     // Connect to test database
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
@@ -37,7 +37,7 @@ describe('API Integration Tests', () => {
   beforeEach(async () => {
     // Clean database before each test
     if (mongoose.connection.readyState === 1) {
-      const collections = mongoose.connection.collections;
+      const { collections } = mongoose.connection;
       for (const key in collections) {
         await collections[key].deleteMany({});
       }
@@ -49,7 +49,7 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .get('/')
         .expect(200);
-      
+
       expect(response.body).toHaveProperty('message');
       expect(response.body.message).toContain('Welcome to Book A Doc API!');
     });
@@ -58,7 +58,7 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .get('/nonexistent')
         .expect(404);
-      
+
       expect(response.body).toHaveProperty('status', 'error');
       expect(response.body).toHaveProperty('message', 'Page not found.');
     });
@@ -68,7 +68,7 @@ describe('API Integration Tests', () => {
     it('should handle auth routes', async () => {
       const response = await request(app)
         .get('/auth');
-      
+
       // Should return some response (200, 404, or 405)
       expect([200, 404, 405]).toContain(response.status);
     });
@@ -78,9 +78,9 @@ describe('API Integration Tests', () => {
         .post('/auth/login')
         .send({
           email: 'test@example.com',
-          password: 'testpassword'
+          password: 'testpassword',
         });
-      
+
       // Should handle request gracefully (not crash)
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
@@ -90,7 +90,7 @@ describe('API Integration Tests', () => {
     it('should handle patients GET request', async () => {
       const response = await request(app)
         .get('/patients');
-      
+
       // Should return some response (200, 401, 404, etc.)
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
@@ -99,13 +99,13 @@ describe('API Integration Tests', () => {
       const patientData = {
         name: 'Test Patient',
         email: 'patient@test.com',
-        phone: '1234567890'
+        phone: '1234567890',
       };
 
       const response = await request(app)
         .post('/patients')
         .send(patientData);
-      
+
       // Should handle request gracefully
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
@@ -115,7 +115,7 @@ describe('API Integration Tests', () => {
     it('should handle doctors GET request', async () => {
       const response = await request(app)
         .get('/doctors');
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
 
@@ -123,13 +123,13 @@ describe('API Integration Tests', () => {
       const doctorData = {
         name: 'Dr. Test',
         specialty: 'General Practice',
-        email: 'doctor@test.com'
+        email: 'doctor@test.com',
       };
 
       const response = await request(app)
         .post('/doctors')
         .send(doctorData);
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
   });
@@ -138,7 +138,7 @@ describe('API Integration Tests', () => {
     it('should handle medical centres GET request', async () => {
       const response = await request(app)
         .get('/medicalCentres');
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
 
@@ -146,13 +146,13 @@ describe('API Integration Tests', () => {
       const centreData = {
         name: 'Test Medical Centre',
         address: '123 Test Street',
-        phone: '1234567890'
+        phone: '1234567890',
       };
 
       const response = await request(app)
         .post('/medicalCentres')
         .send(centreData);
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
   });
@@ -161,7 +161,7 @@ describe('API Integration Tests', () => {
     it('should handle specialties GET request', async () => {
       const response = await request(app)
         .get('/specialties');
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
   });
@@ -170,7 +170,7 @@ describe('API Integration Tests', () => {
     it('should handle bookings GET request', async () => {
       const response = await request(app)
         .get('/bookings');
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
 
@@ -179,13 +179,13 @@ describe('API Integration Tests', () => {
         patientId: new mongoose.Types.ObjectId(),
         doctorId: new mongoose.Types.ObjectId(),
         date: '2024-06-01',
-        time: '10:00'
+        time: '10:00',
       };
 
       const response = await request(app)
         .post('/bookings')
         .send(bookingData);
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
   });
@@ -194,14 +194,14 @@ describe('API Integration Tests', () => {
     it('should handle availabilities GET request', async () => {
       const response = await request(app)
         .get('/availabilities');
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
 
     it('should handle doctor availabilities GET request', async () => {
       const response = await request(app)
         .get('/doctorAvailabilities');
-      
+
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
   });
@@ -211,7 +211,7 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .get('/')
         .set('Origin', 'http://localhost:3000');
-      
+
       expect(response.status).toBe(200);
       // This test mainly ensures CORS doesn't break the request
     });
@@ -221,7 +221,7 @@ describe('API Integration Tests', () => {
         .options('/doctors')
         .set('Origin', 'http://localhost:3000')
         .set('Access-Control-Request-Method', 'GET');
-      
+
       // Should handle OPTIONS requests gracefully
       expect([200, 204, 404]).toContain(response.status);
     });
@@ -233,7 +233,7 @@ describe('API Integration Tests', () => {
         .post('/patients')
         .send('{"invalid": json}')
         .set('Content-Type', 'application/json');
-      
+
       // Should return 400 Bad Request or similar
       expect([400, 500]).toContain(response.status);
     });
@@ -242,7 +242,7 @@ describe('API Integration Tests', () => {
       const response = await request(app)
         .post('/patients')
         .send({});
-      
+
       // Should handle empty requests gracefully
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
@@ -252,7 +252,7 @@ describe('API Integration Tests', () => {
         .post('/patients')
         .send('plain text data')
         .set('Content-Type', 'text/plain');
-      
+
       // Should handle different content types gracefully
       expect(response.status).toBeGreaterThanOrEqual(200);
     });
@@ -262,7 +262,7 @@ describe('API Integration Tests', () => {
     it('should include security headers from helmet', async () => {
       const response = await request(app)
         .get('/');
-      
+
       // Check for some common security headers that helmet adds
       expect(response.headers).toHaveProperty('x-content-type-options');
       expect(response.headers).toHaveProperty('x-frame-options');

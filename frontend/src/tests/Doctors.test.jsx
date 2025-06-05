@@ -51,8 +51,10 @@ describe('Doctors component', () => {
       </BrowserRouter>,
     );
 
-    // Check that loading spinner is displayed initially (your component shows a loader div, not text)
-    expect(screen.getByTestId('doctors-loader') || screen.getByText('Loading doctors...') || document.querySelector('.loader')).toBeInTheDocument();
+    // Check that loading spinner is displayed initially
+    expect(screen.getByTestId('doctors-loader') ||
+     screen.getByText('Loading doctors...') ||
+     document.querySelector('.loader')).toBeInTheDocument();
   });
 
   it('renders doctors after loading', async () => {

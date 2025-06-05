@@ -12,9 +12,7 @@ const auth = require('../middleware/authMiddleware');
 const bookingRouter = express.Router();
 
 // Helper function to safely check if value exists and is a non-empty string
-const isValidString = (value) => {
-  return typeof value === 'string' && value.trim().length > 0;
-};
+const isValidString = (value) => typeof value === 'string' && value.trim().length > 0;
 
 // Validate booking data middleware
 const validateBookingData = (req, res, next) => {
