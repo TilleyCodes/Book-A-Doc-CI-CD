@@ -26,7 +26,22 @@
         "**/*.config.js",
         "**/*.config.ts"
       ]
-    }]
+    }],
+    "arrow-parens": ["error", "always"],
+    "comma-dangle": ["error", "always-multiline"],
+    "eol-last": ["error", "always"],
+    "no-trailing-spaces": "error",
+    "no-restricted-globals": ["error", "isNaN"],
+    "arrow-body-style": ["error", "as-needed"],
+    "prefer-destructuring": "warn",
+    "no-restricted-syntax": "off",
+    "guard-for-in": "off",
+    "no-await-in-loop": "off",
+    "quotes": ["error", "single"],
+    "implicit-arrow-linebreak": "off",
+    "function-paren-newline": "off",
+    "prefer-template": "warn",
+    "no-script-url": "off"
   },
   "overrides": [
     {
