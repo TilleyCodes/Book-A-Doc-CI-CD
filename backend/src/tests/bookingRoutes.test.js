@@ -36,12 +36,22 @@ describe('Booking Routes', () => {
     };
 
     const patientRes = await request(app).post('/patients').send(patientData);
+
+    if (patientRes.status !== 201) {
+      console.error('Failed to create test patient:', patientRes.body);
+      throw new Error('Test setup failed: Could not create patient');
+    }
     testPatient = patientRes.body.newPatient;
 
     // Login to get auth token
     const loginRes = await request(app)
       .post('/patients/login')
       .send({ email: patientData.email, password: patientData.password });
+
+    if (loginRes.status !== 200) {
+      console.error('Failed to login test patient:', loginRes.body);
+      throw new Error('Test setup failed: Could not login');
+    }
 
     authToken = loginRes.body.token;
 
@@ -54,6 +64,10 @@ describe('Booking Routes', () => {
         description: 'Description for test specialty',
       });
 
+    if (specialtyRes.status !== 201) {
+      console.error('Failed to create specialty:', specialtyRes.body);
+      throw new Error('Test setup failed: Could not create specialty');
+    }
     testSpecialty = specialtyRes.body;
 
     // Create a doctor
@@ -63,7 +77,54 @@ describe('Booking Routes', () => {
         doctorName: 'Dr Test',
         specialtyId: testSpecialty._id,
       });
+
+    if (doctorRes.status !== 201) {
+      console.error('Failed to create doctor:', doctorRes.body);
+      throw new Error('Test setup failed: Could not create doctor');
+    }
     testDoctor = doctorRes.body;
+
+    // Create a medical centre
+    const medicalCentreRes = await request(app)
+      .post('/medicalCentres')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        medicalCentreName: 'Test Medical Centre',
+        operatingHours: '9am - 5pm',
+        address: {
+          street: '123 Test St',
+          city: 'Test City',
+        },
+        contacts: {
+          email: 'test@email.com',
+          phone: '1234567890',
+        },
+      });
+
+    if (medicalCentreRes.status !== 201) {
+      console.error('Failed to create medical centre:', medicalCentreRes.body);
+      throw new Error('Test setup failed: Could not create medical centre');
+    }
+
+    testMedicalCentre = medicalCentreRes.body;
+
+    // Create an availability
+    const availabilityRes = await request(app)
+      .post('/availabilities')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        date: '2025-05-01',
+        startTime: '09:00',
+        endTime: '09:30',
+        isBooked: false,
+      });
+
+    if (availabilityRes.status !== 201) {
+      console.error('Failed to create availability:', availabilityRes.body);
+      throw new Error('Test setup failed: Could not create availability');
+    }
+
+    testAvailability = availabilityRes.body;
   });
 
   // Test get all bookings (expect empty initially)
@@ -83,6 +144,8 @@ describe('Booking Routes', () => {
     const bookingData = {
       patientId: testPatient._id,
       doctorId: testDoctor._id,
+      medicalCentreId: testMedicalCentre._id,
+      availabilityId: testAvailability._id,
       date: '2025-05-01',
       time: '09:00',
       status: 'confirmed',
@@ -100,6 +163,10 @@ describe('Booking Routes', () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('status', 'confirmed');
+    expect(res.body).toHaveProperty('patientId', testPatient._id);
+    expect(res.body).toHaveProperty('doctorId', testDoctor._id);
+    expect(res.body).toHaveProperty('medicalCentreId', testMedicalCentre._id);
+    expect(res.body).toHaveProperty('availabilityId', testAvailability._id);
   });
 
   // Test get a single booking by id
