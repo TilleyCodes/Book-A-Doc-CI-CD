@@ -179,23 +179,35 @@ jobs:
           VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text)
           SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query 'Subnets[0:2].SubnetId' --output text | tr '\t' ',')
           
-          # Stop existing service first if it exists
+          # Force delete existing service if it exists
           if aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-backend --query 'services[0]' --output text | grep -q "book-a-doc-backend"; then
-            echo "Stopping existing backend service..."
+            echo "Force stopping and deleting existing backend service..."
+            
+            # Set desired count to 0
             aws ecs update-service \
               --cluster book-a-doc-cluster \
               --service book-a-doc-backend \
-              --desired-count 0
+              --desired-count 0 || true
             
-            echo "Waiting for service to stop..."
-            aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-backend --cli-read-timeout 300 || true
+            # Wait a bit
+            sleep 30
             
-            echo "Deleting existing service..."
+            # Force delete the service
             aws ecs delete-service \
               --cluster book-a-doc-cluster \
-              --service book-a-doc-backend || true
+              --service book-a-doc-backend \
+              --force || true
             
-            sleep 30
+            # Wait for deletion to complete
+            echo "Waiting for service deletion..."
+            for i in {1..20}; do
+              if ! aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-backend --query 'services[0]' --output text 2>/dev/null | grep -q "book-a-doc-backend"; then
+                echo "Service deleted successfully"
+                break
+              fi
+              echo "Still waiting for deletion... ($i/20)"
+              sleep 15
+            done
           fi
           
           echo "Creating new backend service..."
@@ -272,23 +284,35 @@ jobs:
           VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text)
           SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query 'Subnets[0:2].SubnetId' --output text | tr '\t' ',')
           
-          # Stop existing service first if it exists
+          # Force delete existing service if it exists
           if aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-frontend --query 'services[0]' --output text | grep -q "book-a-doc-frontend"; then
-            echo "Stopping existing frontend service..."
+            echo "Force stopping and deleting existing frontend service..."
+            
+            # Set desired count to 0
             aws ecs update-service \
               --cluster book-a-doc-cluster \
               --service book-a-doc-frontend \
-              --desired-count 0
+              --desired-count 0 || true
             
-            echo "Waiting for service to stop..."
-            aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-frontend --cli-read-timeout 300 || true
+            # Wait a bit
+            sleep 30
             
-            echo "Deleting existing service..."
+            # Force delete the service
             aws ecs delete-service \
               --cluster book-a-doc-cluster \
-              --service book-a-doc-frontend || true
+              --service book-a-doc-frontend \
+              --force || true
             
-            sleep 30
+            # Wait for deletion to complete
+            echo "Waiting for service deletion..."
+            for i in {1..20}; do
+              if ! aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-frontend --query 'services[0]' --output text 2>/dev/null | grep -q "book-a-doc-frontend"; then
+                echo "Service deleted successfully"
+                break
+              fi
+              echo "Still waiting for deletion... ($i/20)"
+              sleep 15
+            done
           fi
           
           echo "Creating new frontend service..."
