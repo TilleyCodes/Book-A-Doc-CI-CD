@@ -1,76 +1,25 @@
 const request = require('supertest');
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
 // Set up environment first
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
 
-let app;
+const app = require('../app');
 
 describe('API Integration Tests', () => {
-  let mongoServer;
-
-  beforeAll(async () => {
-    // Set longer timeout
-    jest.setTimeout(60000);
-
-    try {
-      // Disconnect any existing connections
-      if (mongoose.connection.readyState !== 0) {
-        await mongoose.disconnect();
-      }
-
-      // Set up test database - simple setup
-      mongoServer = await MongoMemoryServer.create();
-      const mongoUri = mongoServer.getUri();
-
-      // Set environment variable for the app
-      process.env.MONGODB_URI = mongoUri;
-
-      // Import the app after setting environment
-      app = require('../app');
-
-      // Connect to test database with minimal options
-      await mongoose.connect(mongoUri);
-
-      // Wait for connection
-      await mongoose.connection.readyState;
-
-    } catch (error) {
-      console.error('Integration test setup failed:', error);
-      throw error;
-    }
-  });
-
-  afterAll(async () => {
-    try {
-      // Clean up database connection
-      if (mongoose.connection.readyState !== 0) {
-        await mongoose.disconnect();
-      }
-
-      if (mongoServer) {
-        await mongoServer.stop();
-      }
-    } catch (error) {
-      console.error('Integration test cleanup failed:', error);
-    }
-  });
-
   beforeEach(async () => {
-    try {
-      // Clean database before each test
-      if (mongoose.connection.readyState === 1) {
-        const { collections } = mongoose.connection;
-        const collectionNames = Object.keys(collections);
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
 
-        for (const key of collectionNames) {
-          await collections[key].deleteMany({});
-        }
+    // Clean database before each test
+    if (mongoose.connection.readyState === 1) {
+      const { collections } = mongoose.connection;
+      const collectionNames = Object.keys(collections);
+
+      for (const key of collectionNames) {
+        await collections[key].deleteMany({});
       }
-    } catch (error) {
-      console.warn('Test setup cleanup warning:', error.message);
     }
   });
 
@@ -167,9 +116,13 @@ describe('API Integration Tests', () => {
   describe('POST Endpoints Handling', () => {
     it('should handle patient creation attempts', async () => {
       const patientData = {
-        name: 'Test Patient',
+        firstName: 'Test',
+        lastName: 'Patient',
         email: 'patient@test.com',
-        phone: '1234567890',
+        dateOfBirth: '1990-01-01T00:00:00.000Z',
+        address: { street: '123 Test St', city: 'Test City' },
+        phoneNumber: '1234567890',
+        password: 'TestPassword123',
       };
 
       try {

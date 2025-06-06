@@ -1,3 +1,4 @@
+// src/tests/setup.js
 const { MongoMemoryServer } = require('mongodb-memory-server');
 const mongoose = require('mongoose');
 
@@ -25,20 +26,18 @@ beforeAll(async () => {
   };
 
   try {
-    // Close any existing connections
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+    // Only setup if not already connected
+    if (mongoose.connection.readyState === 0) {
+      // Create test database
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+
+      // Set environment variable for other files
+      process.env.MONGODB_URI = mongoUri;
+
+      // Connect to test database
+      await mongoose.connect(mongoUri);
     }
-
-    // Create test database - simpler setup
-    mongoServer = await MongoMemoryServer.create();
-    const mongoUri = mongoServer.getUri();
-
-    // Connect to test database with minimal options
-    await mongoose.connect(mongoUri);
-
-    // Wait for connection
-    await mongoose.connection.readyState;
 
   } catch (error) {
     console.error('Database setup failed:', error);

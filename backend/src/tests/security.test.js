@@ -1,5 +1,4 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
 
 const app = require('../app');
 
@@ -7,10 +6,10 @@ describe('Security Tests', () => {
   describe('Input Validation and Injection Prevention', () => {
     it('should prevent SQL injection attempts in query parameters', async () => {
       const maliciousInputs = [
-        "'; DROP TABLE users; --",
-        "1' OR '1'='1",
-        "admin'--",
-        "' UNION SELECT * FROM users--",
+        '; DROP TABLE users; --',
+        '1\' OR \'1\'=\'1',
+        'admin\'--',
+        '\' UNION SELECT * FROM users--',
       ];
 
       for (const maliciousInput of maliciousInputs) {
@@ -136,7 +135,7 @@ describe('Security Tests', () => {
       for (const token of invalidTokens) {
         const response = await request(app)
           .post('/bookings')
-          .set('Authorisation', token)
+          .set('Authorization', token)
           .send({ doctorId: '123', date: '2024-01-01' });
 
         // Should handle invalid tokens gracefully
@@ -156,7 +155,7 @@ describe('Security Tests', () => {
       for (const authHeader of edgeCases) {
         const response = await request(app)
           .get('/bookings')
-          .set('Authorisation', authHeader);
+          .set('Authorization', authHeader);
 
         expect(response.status).toBeGreaterThanOrEqual(200);
         expect(response.status).toBeLessThan(600);

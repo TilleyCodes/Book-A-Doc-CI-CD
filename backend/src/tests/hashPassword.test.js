@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+
 const hashPasswordPlugin = require('../middleware/hashPassword');
 
 // Create user model for test
@@ -22,27 +26,21 @@ jest.mock('bcrypt');
 
 // Tests for hashPassword function
 describe('hashPassword plugin', () => {
-  let mongoServer;
   let User;
 
   beforeAll(async () => {
-    // Create MongoDB Memory Server
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
 
     // Create the model after connection
     User = mongoose.model('User', userSchema);
   });
 
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+  beforeEach(async () => {
     jest.clearAllMocks();
-  });
 
-  beforeEach(() => {
-    jest.clearAllMocks();
+    // Clear any existing test data
+    await User.deleteMany({});
   });
 
   test('Should hash the password when it is new or modified', async () => {

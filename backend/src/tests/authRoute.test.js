@@ -1,18 +1,27 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+
 const app = require('../app');
 
 describe('Patient Authentication', () => {
-  let mongoServer;
   let testPatient;
 
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+  beforeEach(async () => {
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
 
-    // Seed the database by creating dummy patient (registration)
+    // Clear any existing test data
+    const { collections } = mongoose.connection;
+    const collectionKeys = Object.keys(collections);
+    for (const key of collectionKeys) {
+      await collections[key].deleteMany({});
+    }
+
+    // Create dummy patient (registration)
     testPatient = {
       firstName: 'Jeff',
       lastName: 'Test',
@@ -24,11 +33,6 @@ describe('Patient Authentication', () => {
     };
 
     await request(app).post('/patients').send(testPatient);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
   });
 
   // Test Patient login credentials
@@ -69,7 +73,7 @@ describe('Patient Authentication', () => {
       .post('/patients/login')
       .send({ email: testPatient.email, password: testPatient.password });
 
-    const { token } = loginRes.body.token;
+    const { token } = loginRes.body;
 
     // Then access a route
     const res = await request(app)

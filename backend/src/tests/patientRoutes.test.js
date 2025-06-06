@@ -1,22 +1,23 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+
 const app = require('../app');
 
 describe('Patient Routes', () => {
-  let mongoServer;
-  let testPatient;
-  let authToken;
+  beforeEach(async () => {
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
 
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
+    // Clear any existing test data
+    const { collections } = mongoose.connection;
+    const collectionKeys = Object.keys(collections);
+    for (const key of collectionKeys) {
+      await collections[key].deleteMany({});
+    }
   });
 
   // Test create patient
@@ -38,21 +39,40 @@ describe('Patient Routes', () => {
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('token');
     expect(res.body.newPatient).toHaveProperty('firstName', patientData.firstName);
-    testPatient = res.body.newPatient;
+
+    // Get the created patient and auth token for verification
+    const { newPatient: testPatient } = res.body;
 
     // Login to get auth token
     const loginRes = await request(app)
       .post('/patients/login')
       .send({ email: patientData.email, password: patientData.password });
 
-    authToken = loginRes.body.token;
+    const authToken = loginRes.body.token;
+
+    // Verify we have both the patient and token
+    expect(testPatient).toBeDefined();
+    expect(authToken).toBeDefined();
   });
 
   // Test patient login auth
   test('POST /patients/login should authenticate a patient', async () => {
+    // First create a patient
+    const patientData = {
+      firstName: 'Login',
+      lastName: 'Test',
+      email: 'login.test@email.com',
+      dateOfBirth: '1990-01-01T00:00:00.000Z',
+      address: { street: '9 Login St', city: 'Login Town' },
+      phoneNumber: '9878 2234',
+      password: 'LoginPassword1234',
+    };
+
+    await request(app).post('/patients').send(patientData);
+
     const loginData = {
-      email: 'test.patient@email.com',
-      password: 'TestPassword1234',
+      email: 'login.test@email.com',
+      password: 'LoginPassword1234',
     };
 
     const res = await request(app)
@@ -66,9 +86,22 @@ describe('Patient Routes', () => {
 
   // Test login error for invalid patient password
   test('POST /patients/login should return 401 for wrong password', async () => {
+    // First create a patient
+    const patientData = {
+      firstName: 'Wrong',
+      lastName: 'Password',
+      email: 'wrong.password@email.com',
+      dateOfBirth: '1990-01-01T00:00:00.000Z',
+      address: { street: '10 Wrong St', city: 'Wrong Town' },
+      phoneNumber: '9878 2235',
+      password: 'RightPassword1234',
+    };
+
+    await request(app).post('/patients').send(patientData);
+
     const loginData = {
-      email: 'test.patient@email.com',
-      password: 'Password124',
+      email: 'wrong.password@email.com',
+      password: 'WrongPassword124',
     };
 
     const res = await request(app)
@@ -81,6 +114,33 @@ describe('Patient Routes', () => {
 
   // Test get all Patients
   test('GET /patients should return all patients', async () => {
+    // Create a few test patients
+    const patients = [
+      {
+        firstName: 'Patient',
+        lastName: 'One',
+        email: 'patient1@email.com',
+        dateOfBirth: '1990-01-01T00:00:00.000Z',
+        address: { street: '11 One St', city: 'One Town' },
+        phoneNumber: '9878 2236',
+        password: 'Password1234',
+      },
+      {
+        firstName: 'Patient',
+        lastName: 'Two',
+        email: 'patient2@email.com',
+        dateOfBirth: '1985-01-01T00:00:00.000Z',
+        address: { street: '12 Two St', city: 'Two Town' },
+        phoneNumber: '9878 2237',
+        password: 'Password1234',
+      },
+    ];
+
+    // Create patients using Promise.all instead of for-of loop
+    await Promise.all(
+      patients.map((patient) => request(app).post('/patients').send(patient)),
+    );
+
     const res = await request(app).get('/patients');
 
     expect(res.status).toBe(200);
@@ -100,20 +160,53 @@ describe('Patient Routes', () => {
 
   // Test get a single patient by id
   test('GET /patients/:id should return a specific patient', async () => {
-    const res = await request(app).get(`/patients/${testPatient._id}`);
+    // Create a patient first
+    const patientData = {
+      firstName: 'Specific',
+      lastName: 'Patient',
+      email: 'specific.patient@email.com',
+      dateOfBirth: '1990-01-01T00:00:00.000Z',
+      address: { street: '13 Specific St', city: 'Specific Town' },
+      phoneNumber: '9878 2238',
+      password: 'SpecificPassword1234',
+    };
+
+    const createRes = await request(app).post('/patients').send(patientData);
+    const { newPatient: patient } = createRes.body;
+
+    const res = await request(app).get(`/patients/${patient._id}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('firstName', testPatient.firstName);
+    expect(res.body).toHaveProperty('firstName', patient.firstName);
   });
 
   // test get patient profile with successful auth
   test('GET /patients/profile should return patient profile when authenticated', async () => {
+    // Create a patient and get token
+    const patientData = {
+      firstName: 'Profile',
+      lastName: 'Patient',
+      email: 'profile.patient@email.com',
+      dateOfBirth: '1990-01-01T00:00:00.000Z',
+      address: { street: '14 Profile St', city: 'Profile Town' },
+      phoneNumber: '9878 2239',
+      password: 'ProfilePassword1234',
+    };
+
+    const createRes = await request(app).post('/patients').send(patientData);
+    const loginRes = await request(app)
+      .post('/patients/login')
+      .send({ email: patientData.email, password: patientData.password });
+
+    const { token } = loginRes.body;
+    const { newPatient: patient } = createRes.body;
+
     const res = await request(app)
       .get('/patients/profile')
-      .set('Authorization', `Bearer ${authToken}`);
+      .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('firstName', testPatient.firstName);
+    expect(res.body).toHaveProperty('firstName', patient.firstName);
   });
 
   // Test get patient profile with unsuccessful auth
@@ -126,19 +219,38 @@ describe('Patient Routes', () => {
 
   // test update patient
   test('PATCH /patients/:id should update a patient', async () => {
+    // Create a patient and get token
+    const patientData = {
+      firstName: 'Update',
+      lastName: 'Patient',
+      email: 'update.patient@email.com',
+      dateOfBirth: '1990-01-01T00:00:00.000Z',
+      address: { street: '15 Update St', city: 'Update Town' },
+      phoneNumber: '9878 2240',
+      password: 'UpdatePassword1234',
+    };
+
+    const createRes = await request(app).post('/patients').send(patientData);
+    const loginRes = await request(app)
+      .post('/patients/login')
+      .send({ email: patientData.email, password: patientData.password });
+
+    const { token } = loginRes.body;
+    const { newPatient: patient } = createRes.body;
+
     const updateData = {
       firstName: 'Updated',
       lastName: 'Patient',
-      email: 'test.patient@email.com',
+      email: 'update.patient@email.com',
       dateOfBirth: '1990-01-01T00:00:00.000Z',
       address: { street: '5 Up St', city: 'Dated' },
       phoneNumber: '9934 6577',
-      password: 'TestPassword1234',
+      password: 'UpdatePassword1234',
     };
 
     const res = await request(app)
-      .patch(`/patients/${testPatient._id}`)
-      .set('Authorization', `Bearer ${authToken}`)
+      .patch(`/patients/${patient._id}`)
+      .set('Authorization', `Bearer ${token}`)
       .send(updateData);
 
     expect(res.status).toBe(200);
@@ -147,15 +259,34 @@ describe('Patient Routes', () => {
 
   // Test Delete patient
   test('DELETE /patients/:id should delete a patient', async () => {
+    // Create a patient and get token
+    const patientData = {
+      firstName: 'Delete',
+      lastName: 'Patient',
+      email: 'delete.patient@email.com',
+      dateOfBirth: '1990-01-01T00:00:00.000Z',
+      address: { street: '16 Delete St', city: 'Delete Town' },
+      phoneNumber: '9878 2241',
+      password: 'DeletePassword1234',
+    };
+
+    const createRes = await request(app).post('/patients').send(patientData);
+    const loginRes = await request(app)
+      .post('/patients/login')
+      .send({ email: patientData.email, password: patientData.password });
+
+    const { token } = loginRes.body;
+    const { newPatient: patient } = createRes.body;
+
     const res = await request(app)
-      .delete(`/patients/${testPatient._id}`)
-      .set('Authorization', `Bearer ${authToken}`);
+      .delete(`/patients/${patient._id}`)
+      .set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('firstName', 'Updated');
+    expect(res.body).toHaveProperty('firstName', 'Delete');
 
     // Verify it's deleted
-    const getRes = await request(app).get(`/patients/${testPatient._id}`);
+    const getRes = await request(app).get(`/patients/${patient._id}`);
     expect(getRes.status).toBe(404);
   });
 });

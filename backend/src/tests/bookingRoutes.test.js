@@ -1,20 +1,28 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+
 const app = require('../app');
 
 describe('Booking Routes', () => {
-  let mongoServer;
   let authToken;
   let testPatient;
   let testDoctor;
   let testAvailability;
-  let testBooking;
 
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+  beforeEach(async () => {
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
+
+    // Clear any existing test data
+    const { collections } = mongoose.connection;
+    const collectionKeys = Object.keys(collections);
+    for (const key of collectionKeys) {
+      await collections[key].deleteMany({});
+    }
 
     // Create test patient
     const patientData = {
@@ -66,8 +74,35 @@ describe('Booking Routes', () => {
         isBooked: false,
       });
     testAvailability = availabilityRes.body;
+  });
 
-    // Create a booking
+  // Test get all bookings
+  test('GET /bookings should return all bookings', async () => {
+    // Create a booking first
+    const bookingData = {
+      patientId: testPatient._id,
+      doctorId: testDoctor._id,
+      availabilityId: testAvailability._id,
+      status: 'confirmed',
+    };
+
+    await request(app)
+      .post('/bookings')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(bookingData);
+
+    const res = await request(app)
+      .get('/bookings')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBeTruthy();
+    expect(res.body.length).toBeGreaterThan(0);
+  });
+
+  // Test get a single booking by id
+  test('GET /bookings/:id should return a specific booking', async () => {
+    // Create a booking first
     const bookingData = {
       patientId: testPatient._id,
       doctorId: testDoctor._id,
@@ -80,27 +115,8 @@ describe('Booking Routes', () => {
       .set('Authorization', `Bearer ${authToken}`)
       .send(bookingData);
 
-    testBooking = bookingRes.body;
-  });
+    const testBooking = bookingRes.body;
 
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
-  // Test get all bookings
-  test('GET /bookings should return all bookings', async () => {
-    const res = await request(app)
-      .get('/bookings')
-      .set('Authorization', `Bearer ${authToken}`);
-
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBeTruthy();
-    expect(res.body.length).toBeGreaterThan(0);
-  });
-
-  // Test get a single booking by id
-  test('GET /bookings/:id should return a specific booking', async () => {
     const res = await request(app)
       .get(`/bookings/${testBooking._id}`)
       .set('Authorization', `Bearer ${authToken}`);
@@ -125,11 +141,25 @@ describe('Booking Routes', () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('status', 'confirmed');
-    testBooking = res.body;
   });
 
   // test update booking by id
   test('PATCH /bookings/:id should update a booking', async () => {
+    // Create a booking first
+    const bookingData = {
+      patientId: testPatient._id,
+      doctorId: testDoctor._id,
+      availabilityId: testAvailability._id,
+      status: 'confirmed',
+    };
+
+    const bookingRes = await request(app)
+      .post('/bookings')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(bookingData);
+
+    const testBooking = bookingRes.body;
+
     const updateData = {
       status: 'cancelled',
       patientId: testPatient._id,
@@ -148,6 +178,21 @@ describe('Booking Routes', () => {
 
   // Test delete booking
   test('DELETE /bookings/:id should delete a booking', async () => {
+    // Create a booking first
+    const bookingData = {
+      patientId: testPatient._id,
+      doctorId: testDoctor._id,
+      availabilityId: testAvailability._id,
+      status: 'confirmed',
+    };
+
+    const bookingRes = await request(app)
+      .post('/bookings')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send(bookingData);
+
+    const testBooking = bookingRes.body;
+
     const res = await request(app)
       .delete(`/bookings/${testBooking._id}`)
       .set('Authorization', `Bearer ${authToken}`);

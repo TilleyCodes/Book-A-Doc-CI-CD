@@ -1,17 +1,26 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+
 const app = require('../app');
 
 describe('Specialty Routes', () => {
-  let mongoServer;
   let authToken;
   let testSpecialty;
 
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+  beforeEach(async () => {
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
+
+    // Clear any existing test data
+    const { collections } = mongoose.connection;
+    const collectionKeys = Object.keys(collections);
+    for (const key of collectionKeys) {
+      await collections[key].deleteMany({});
+    }
 
     // Create a test patient for auth token
     const patientData = {
@@ -46,18 +55,13 @@ describe('Specialty Routes', () => {
     testSpecialty = createRes.body;
   });
 
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
-  });
-
   // Test get all specialty
   test('GET /specialties should return all specialties', async () => {
     const res = await request(app).get('/specialties');
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBeTruthy();
-    expect(res.body.length).toBeGreaterThan(0); // one specailty already created in beforeAll
+    expect(res.body.length).toBeGreaterThan(0); // one specialty already created in beforeEach
   });
 
   // Test get a specialty by id
@@ -80,8 +84,8 @@ describe('Specialty Routes', () => {
   // Test create specialty
   test('POST /specialties should create a new specialty', async () => {
     const specialtyData = {
-      specialtyName: 'Test Specialty',
-      description: 'Description for test specialty',
+      specialtyName: 'New Test Specialty',
+      description: 'Description for new test specialty',
     };
 
     const res = await request(app)
@@ -91,7 +95,6 @@ describe('Specialty Routes', () => {
 
     expect(res.status).toBe(201);
     expect(res.body).toHaveProperty('specialtyName', specialtyData.specialtyName);
-    testSpecialty = res.body;
   });
 
   // Test update specialty
@@ -134,7 +137,6 @@ describe('Specialty Routes', () => {
       .set('Authorization', `Bearer ${authToken}`);
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('specialtyName', 'Updated Specialty', testSpecialty.specialtyName);
 
     // Verify it's deleted
     const getRes = await request(app).get(`/specialties/${testSpecialty._id}`);

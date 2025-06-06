@@ -1,18 +1,27 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+
+// Set up environment first
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+
 const app = require('../app');
 
 describe('Doctor Routes', () => {
-  let mongoServer;
   let authToken;
   let testSpecialty;
   let testDoctor;
 
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
+  beforeEach(async () => {
+    // Wait for database to be ready
+    await testUtils.waitForDatabase();
+
+    // Clear any existing test data
+    const { collections } = mongoose.connection;
+    const collectionKeys = Object.keys(collections);
+    for (const key of collectionKeys) {
+      await collections[key].deleteMany({});
+    }
 
     // Create a test patient / admin for auth token
     const patientData = {
@@ -54,11 +63,6 @@ describe('Doctor Routes', () => {
       .send(doctorData);
 
     testDoctor = doctorRes.body;
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-    await mongoServer.stop();
   });
 
   // Test get all doctors
