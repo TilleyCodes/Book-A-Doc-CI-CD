@@ -1,0 +1,90 @@
+name: Cleanup AWS Resources
+
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-2
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Delete ECS Services
+        run: |
+          echo "Deleting ECS services..."
+          
+          # Stop and delete backend service
+          aws ecs update-service --cluster book-a-doc-cluster --service book-a-doc-backend --desired-count 0 || true
+          sleep 10
+          aws ecs delete-service --cluster book-a-doc-cluster --service book-a-doc-backend --force || true
+          
+          # Stop and delete frontend service  
+          aws ecs update-service --cluster book-a-doc-cluster --service book-a-doc-frontend --desired-count 0 || true
+          sleep 10
+          aws ecs delete-service --cluster book-a-doc-cluster --service book-a-doc-frontend --force || true
+          
+          echo "Services deletion initiated..."
+
+      - name: Wait for services to be deleted
+        run: |
+          echo "Waiting for services to be fully deleted..."
+          sleep 60
+
+      - name: Delete ECS Cluster
+        run: |
+          echo "Deleting ECS cluster..."
+          aws ecs delete-cluster --cluster book-a-doc-cluster || true
+
+      - name: Delete ECR Repositories
+        run: |
+          echo "Deleting ECR repositories..."
+          aws ecr delete-repository --repository-name book-a-doc-backend --force || true
+          aws ecr delete-repository --repository-name book-a-doc-frontend --force || true
+
+      - name: Delete CloudWatch Log Groups
+        run: |
+          echo "Deleting CloudWatch log groups..."
+          aws logs delete-log-group --log-group-name "/ecs/book-a-doc-backend" || true
+          aws logs delete-log-group --log-group-name "/ecs/book-a-doc-frontend" || true
+
+      - name: Delete SSM Parameters
+        run: |
+          echo "Deleting SSM parameters..."
+          aws ssm delete-parameter --name "/book-a-doc/mongodb-uri" || true
+          aws ssm delete-parameter --name "/book-a-doc/jwt-secret" || true
+
+      - name: Delete Security Groups
+        run: |
+          echo "Deleting security groups..."
+          
+          # Get security group IDs
+          BACKEND_SG=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=book-a-doc-backend-sg" --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "None")
+          FRONTEND_SG=$(aws ec2 describe-security-groups --filters "Name=group-name,Values=book-a-doc-frontend-sg" --query 'SecurityGroups[0].GroupId' --output text 2>/dev/null || echo "None")
+          
+          if [ "$BACKEND_SG" != "None" ]; then
+            aws ec2 delete-security-group --group-id $BACKEND_SG || true
+          fi
+          
+          if [ "$FRONTEND_SG" != "None" ]; then
+            aws ec2 delete-security-group --group-id $FRONTEND_SG || true
+          fi
+
+      - name: Delete IAM Role
+        run: |
+          echo "Deleting IAM role..."
+          aws iam detach-role-policy --role-name ecsTaskExecutionRole --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy || true
+          aws iam delete-role --role-name ecsTaskExecutionRole || true
+
+      - name: Cleanup complete
+        run: |
+          echo "AWS cleanup completed!"
+          echo "All resources have been deleted to avoid charges."
