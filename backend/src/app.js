@@ -59,23 +59,25 @@ app.get('/health', (req, res) => {
 // Method Not Allowed handler - catches unsupported HTTP methods
 app.use((req, res, next) => {
   const allowedMethods = {
-    '/patients': ['GET', 'POST'],
-    '/doctors': ['GET', 'POST'],
-    '/specialties': ['GET', 'POST'],
-    '/bookings': ['GET', 'POST'],
-    '/medicalCentres': ['GET', 'POST'],
-    '/availabilities': ['GET', 'POST'],
-    '/doctorCentres': ['GET', 'POST'],
-    '/doctorAvailabilities': ['GET', 'POST'],
+    '/patients': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/doctors': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/specialties': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/bookings': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/medicalCentres': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/availabilities': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/doctorCentres': ['GET', 'POST', 'PATCH', 'DELETE'],
+    '/doctorAvailabilities': ['GET', 'POST', 'PATCH', 'DELETE'],
     '/auth': ['GET', 'POST'],
   };
 
+  // Check if this is a known route path
   const basePath = req.path.split('/')[1] ? `/${req.path.split('/')[1]}` : req.path;
-  const pathKey = Object.keys(allowedMethods).find((path) => basePath.startsWith(path));
+  const pathKey = Object.keys(allowedMethods).find((path) => basePath === path || req.path.startsWith(`${path}/`));
 
   if (pathKey) {
     const allowed = allowedMethods[pathKey];
-    if (!allowed.includes(req.method)) {
+    // Convert method to uppercase for comparison
+    if (!allowed.includes(req.method.toUpperCase())) {
       return res.status(405).json({
         status: 'error',
         message: `Method ${req.method} not allowed`,
