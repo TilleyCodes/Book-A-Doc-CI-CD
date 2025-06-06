@@ -6,15 +6,18 @@ describe('Homepage Tests', () => {
   it('should load the homepage without errors', () => {
     cy.url().should('include', '/');
     cy.get('body').should('be.visible');
-    // Check if the main heading is there
-    cy.contains('Book-a-Doc').should('be.visible');
+    // Check if the main heading is there - updated to match actual content
+    cy.contains('Book a Doc').should('be.visible');
   });
 
   it('should have working navigation', () => {
-    // Test basic navigation - still learning how to do this properly
-    cy.get('body').should('contain.text', 'Book-a-Doc');
-
-    // TODO: Add more navigation tests when I figure out the selectors
+    // Test basic navigation - checking for actual content
+    cy.get('body').should('contain.text', 'Book a Doc');
+    
+    // Check for common navigation elements
+    cy.get('body').should('contain.text', 'Home');
+    cy.get('body').should('contain.text', 'About');
+    cy.get('body').should('contain.text', 'Login');
   });
 
   it('should work on different screen sizes', () => {
