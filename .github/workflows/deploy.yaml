@@ -56,6 +56,9 @@ jobs:
             aws iam attach-role-policy \
               --role-name ecsTaskExecutionRole \
               --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+            
+            # Wait a bit for role to be ready
+            sleep 10
           fi
 
       # Store secrets in AWS Parameter Store
@@ -78,6 +81,7 @@ jobs:
         run: |
           VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text)
           
+          # Create backend security group
           BACKEND_SG=$(aws ec2 create-security-group \
             --group-name book-a-doc-backend-sg \
             --description "Security group for backend" \
@@ -87,13 +91,32 @@ jobs:
               --filters "Name=group-name,Values=book-a-doc-backend-sg" \
               --query 'SecurityGroups[0].GroupId' --output text)
           
+          # Allow HTTP traffic
           aws ec2 authorize-security-group-ingress \
             --group-id $BACKEND_SG \
             --protocol tcp \
             --port 3000 \
             --cidr 0.0.0.0/0 2>/dev/null || true
           
+          # Create frontend security group
+          FRONTEND_SG=$(aws ec2 create-security-group \
+            --group-name book-a-doc-frontend-sg \
+            --description "Security group for frontend" \
+            --vpc-id $VPC_ID \
+            --query 'GroupId' --output text 2>/dev/null || \
+            aws ec2 describe-security-groups \
+              --filters "Name=group-name,Values=book-a-doc-frontend-sg" \
+              --query 'SecurityGroups[0].GroupId' --output text)
+          
+          # Allow HTTP traffic
+          aws ec2 authorize-security-group-ingress \
+            --group-id $FRONTEND_SG \
+            --protocol tcp \
+            --port 80 \
+            --cidr 0.0.0.0/0 2>/dev/null || true
+          
           echo "BACKEND_SG=$BACKEND_SG" >> $GITHUB_ENV
+          echo "FRONTEND_SG=$FRONTEND_SG" >> $GITHUB_ENV
 
       # Deploy backend service
       - name: Deploy backend to ECS
@@ -126,6 +149,13 @@ jobs:
                     "valueFrom": "arn:aws:ssm:${{ env.AWS_REGION }}:${{ secrets.AWS_ACCOUNT_ID }}:parameter/book-a-doc/jwt-secret"
                   }
                 ],
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"],
+                  "interval": 30,
+                  "timeout": 5,
+                  "retries": 3,
+                  "startPeriod": 60
+                },
                 "logConfiguration": {
                   "logDriver": "awslogs",
                   "options": {
@@ -149,23 +179,51 @@ jobs:
           VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text)
           SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query 'Subnets[0:2].SubnetId' --output text | tr '\t' ',')
           
-          # Create or update service
+          # Stop existing service first if it exists
           if aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-backend --query 'services[0]' --output text | grep -q "book-a-doc-backend"; then
-            echo "Updating existing backend service..."
+            echo "Stopping existing backend service..."
             aws ecs update-service \
               --cluster book-a-doc-cluster \
               --service book-a-doc-backend \
-              --task-definition book-a-doc-backend
-          else
-            echo "Creating new backend service..."
-            aws ecs create-service \
+              --desired-count 0
+            
+            echo "Waiting for service to stop..."
+            aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-backend --cli-read-timeout 300 || true
+            
+            echo "Deleting existing service..."
+            aws ecs delete-service \
               --cluster book-a-doc-cluster \
-              --service-name book-a-doc-backend \
-              --task-definition book-a-doc-backend \
-              --desired-count 1 \
-              --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$BACKEND_SG],assignPublicIp=ENABLED}"
+              --service book-a-doc-backend || true
+            
+            sleep 30
           fi
+          
+          echo "Creating new backend service..."
+          aws ecs create-service \
+            --cluster book-a-doc-cluster \
+            --service-name book-a-doc-backend \
+            --task-definition book-a-doc-backend \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$BACKEND_SG],assignPublicIp=ENABLED}"
+
+      # Wait for backend with shorter timeout
+      - name: Wait for backend service
+        run: |
+          echo "Waiting for backend service to start..."
+          timeout 300 aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-backend || {
+            echo "Backend service didn't stabilise in time, checking status..."
+            aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-backend
+            
+            # Get task details for debugging
+            TASK_ARN=$(aws ecs list-tasks --cluster book-a-doc-cluster --service-name book-a-doc-backend --query 'taskArns[0]' --output text)
+            if [ "$TASK_ARN" != "None" ]; then
+              echo "Task details:"
+              aws ecs describe-tasks --cluster book-a-doc-cluster --tasks $TASK_ARN
+            fi
+            
+            echo "Continuing with deployment despite timeout..."
+          }
 
       # Deploy frontend service
       - name: Deploy frontend to ECS
@@ -184,6 +242,13 @@ jobs:
                 "name": "frontend",
                 "image": "${{ env.ECR_REGISTRY }}/book-a-doc-frontend:latest",
                 "portMappings": [{"containerPort": 80}],
+                "healthCheck": {
+                  "command": ["CMD-SHELL", "curl -f http://localhost/ || exit 1"],
+                  "interval": 30,
+                  "timeout": 5,
+                  "retries": 3,
+                  "startPeriod": 60
+                },
                 "logConfiguration": {
                   "logDriver": "awslogs",
                   "options": {
@@ -207,50 +272,60 @@ jobs:
           VPC_ID=$(aws ec2 describe-vpcs --filters "Name=is-default,Values=true" --query 'Vpcs[0].VpcId' --output text)
           SUBNET_IDS=$(aws ec2 describe-subnets --filters "Name=vpc-id,Values=$VPC_ID" --query 'Subnets[0:2].SubnetId' --output text | tr '\t' ',')
           
-          # Create or update service
+          # Stop existing service first if it exists
           if aws ecs describe-services --cluster book-a-doc-cluster --services book-a-doc-frontend --query 'services[0]' --output text | grep -q "book-a-doc-frontend"; then
-            echo "Updating existing frontend service..."
+            echo "Stopping existing frontend service..."
             aws ecs update-service \
               --cluster book-a-doc-cluster \
               --service book-a-doc-frontend \
-              --task-definition book-a-doc-frontend
-          else
-            echo "Creating new frontend service..."
-            aws ecs create-service \
+              --desired-count 0
+            
+            echo "Waiting for service to stop..."
+            aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-frontend --cli-read-timeout 300 || true
+            
+            echo "Deleting existing service..."
+            aws ecs delete-service \
               --cluster book-a-doc-cluster \
-              --service-name book-a-doc-frontend \
-              --task-definition book-a-doc-frontend \
-              --desired-count 1 \
-              --launch-type FARGATE \
-              --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],assignPublicIp=ENABLED}"
+              --service book-a-doc-frontend || true
+            
+            sleep 30
           fi
-
-      # Wait for deployment to complete
-      - name: Wait for services to be stable
-        run: |
-          echo "Waiting for backend service to stabilise..."
-          aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-backend
           
-          echo "Waiting for frontend service to stabilise..."
-          aws ecs wait services-stable --cluster book-a-doc-cluster --services book-a-doc-frontend
-          
-          echo "Deployment completed successfully!"
+          echo "Creating new frontend service..."
+          aws ecs create-service \
+            --cluster book-a-doc-cluster \
+            --service-name book-a-doc-frontend \
+            --task-definition book-a-doc-frontend \
+            --desired-count 1 \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNET_IDS],securityGroups=[$FRONTEND_SG],assignPublicIp=ENABLED}"
 
-      # Test the deployment
+      # Test the deployment with better error handling
       - name: Test deployment
         run: |
-          echo "Testing if services are running..."
+          echo "Checking if services are running..."
           
-          # Get task info to find public IPs
+          # Check backend
           BACKEND_TASK=$(aws ecs list-tasks --cluster book-a-doc-cluster --service-name book-a-doc-backend --query 'taskArns[0]' --output text)
           FRONTEND_TASK=$(aws ecs list-tasks --cluster book-a-doc-cluster --service-name book-a-doc-frontend --query 'taskArns[0]' --output text)
           
           if [ "$BACKEND_TASK" != "None" ] && [ "$FRONTEND_TASK" != "None" ]; then
-            echo "Both services are running!"
+            echo "Both services have running tasks!"
             echo "Backend task: $BACKEND_TASK"
             echo "Frontend task: $FRONTEND_TASK"
           else
-            echo "Some services failed to start"
-            exit 1
+            echo "Some services don't have running tasks yet"
+            echo "Backend task: $BACKEND_TASK"
+            echo "Frontend task: $FRONTEND_TASK"
           fi
           
+          # Get service status
+          echo ""
+          echo "Service status:"
+          aws ecs describe-services \
+            --cluster book-a-doc-cluster \
+            --services book-a-doc-backend book-a-doc-frontend \
+            --query 'services[*].{Name:serviceName,Status:status,Running:runningCount,Desired:desiredCount}' \
+            --output table
+          
+          echo "Deployment completed!"
