@@ -9,18 +9,30 @@ beforeAll(async () => {
   // Set longer timeout for tests
   jest.setTimeout(60000);
 
-  // Quiet the console during tests
+  // Quiet the console during tests - be more aggressive about silencing
   const originalLog = console.log;
   const originalError = console.error;
 
   console.log = (...args) => {
-    if (!args[0] || !args[0].includes('MongoMemoryServer')) {
+    // Only allow critical logs, suppress most noise
+    if (args[0] && (args[0].includes('CRITICAL') || args[0].includes('FATAL'))) {
       originalLog.apply(console, args);
     }
   };
 
   console.error = (...args) => {
-    if (!args[0] || (!args[0].includes('deprecated') && !args[0].includes('Warning') && !args[0].includes('buffering timed out'))) {
+    // Allow specific errors but silence expected test errors
+    if (!args[0] || (
+      !args[0].includes('deprecated')
+      && !args[0].includes('Warning')
+      && !args[0].includes('buffering timed out')
+      && !args[0].includes('PayloadTooLargeError')
+      && !args[0].includes('Unexpected token')
+      && !args[0].includes('CastError')
+      && !args[0].includes('Invalid email or password')
+      && !args[0].includes('not found')
+      && !args[0].includes('Password hashed')
+    )) {
       originalError.apply(console, args);
     }
   };
@@ -73,8 +85,8 @@ afterEach(async () => {
       await Promise.all(promises);
     }
   } catch (error) {
-    // Just warn, don't fail the test
-    console.warn('Test cleanup warning:', error.message);
+    // Just warn, don't fail the test - but silence this too
+    // console.warn('Test cleanup warning:', error.message);
   }
 });
 

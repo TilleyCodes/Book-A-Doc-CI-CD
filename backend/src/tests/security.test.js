@@ -221,7 +221,7 @@ describe('Security Tests', () => {
         if (request(app)[method]) {
           const response = await request(app)[method]('/patients');
 
-          // Should return 405 Method Not Allowed or 404
+          // Should return 405 Method Not Allowed or 404 (removed 200 from expected)
           expect([404, 405]).toContain(response.status);
         }
       }
