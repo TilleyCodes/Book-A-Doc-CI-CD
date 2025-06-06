@@ -30,27 +30,16 @@ beforeAll(async () => {
       await mongoose.disconnect();
     }
 
-    // Create test database
-    mongoServer = await MongoMemoryServer.create({
-      instance: {
-        dbName: 'testdb',
-      },
-    });
-
+    // Create test database - simpler setup
+    mongoServer = await MongoMemoryServer.create();
     const mongoUri = mongoServer.getUri();
 
-    // Connect to test database
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 30000,
-      bufferMaxEntries: 0,
-      bufferCommands: false,
-    });
+    // Connect to test database with minimal options
+    await mongoose.connect(mongoUri);
 
     // Wait for connection
     await mongoose.connection.readyState;
+
   } catch (error) {
     console.error('Database setup failed:', error);
     throw error;
@@ -78,7 +67,7 @@ afterEach(async () => {
   try {
     // Clear test data
     if (mongoose.connection.readyState === 1) {
-      const collections = mongoose.connection.collections;
+      const { collections } = mongoose.connection;
       const promises = Object.keys(collections).map(async (key) => {
         return collections[key].deleteMany({});
       });
@@ -96,32 +85,26 @@ process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only-super-secure-long
 
 // Simple test helpers
 global.testUtils = {
-  createTestUser: () => {
-    return {
-      email: 'test@example.com',
-      password: 'testPassword123',
-      name: 'Test User',
-    };
-  },
+  createTestUser: () => ({
+    email: 'test@example.com',
+    password: 'testPassword123',
+    name: 'Test User',
+  }),
 
-  createTestDoctor: () => {
-    return {
-      name: 'Dr. Test',
-      specialty: 'General Practice',
-      email: 'doctor@test.com',
-      availability: [],
-    };
-  },
+  createTestDoctor: () => ({
+    name: 'Dr. Test',
+    specialty: 'General Practice',
+    email: 'doctor@test.com',
+    availability: [],
+  }),
 
-  createTestBooking: () => {
-    return {
-      patientId: new mongoose.Types.ObjectId(),
-      doctorId: new mongoose.Types.ObjectId(),
-      date: new Date(),
-      time: '10:00',
-      status: 'scheduled',
-    };
-  },
+  createTestBooking: () => ({
+    patientId: new mongoose.Types.ObjectId(),
+    doctorId: new mongoose.Types.ObjectId(),
+    date: new Date(),
+    time: '10:00',
+    status: 'scheduled',
+  }),
 
   // Wait for database to be ready
   waitForDatabase: async () => {
@@ -133,7 +116,7 @@ global.testUtils = {
         return true;
       }
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      attempts = attempts + 1;
+      attempts += 1;
     }
     throw new Error('Database connection timeout');
   },

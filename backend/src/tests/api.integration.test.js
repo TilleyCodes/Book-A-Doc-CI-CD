@@ -21,13 +21,8 @@ describe('API Integration Tests', () => {
         await mongoose.disconnect();
       }
 
-      // Set up test database
-      mongoServer = await MongoMemoryServer.create({
-        instance: {
-          dbName: 'integrationtest',
-        },
-      });
-
+      // Set up test database - simple setup
+      mongoServer = await MongoMemoryServer.create();
       const mongoUri = mongoServer.getUri();
 
       // Set environment variable for the app
@@ -36,18 +31,12 @@ describe('API Integration Tests', () => {
       // Import the app after setting environment
       app = require('../app');
 
-      // Connect to test database
-      await mongoose.connect(mongoUri, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 30000,
-        socketTimeoutMS: 30000,
-        bufferMaxEntries: 0,
-        bufferCommands: false,
-      });
+      // Connect to test database with minimal options
+      await mongoose.connect(mongoUri);
 
       // Wait for connection
       await mongoose.connection.readyState;
+
     } catch (error) {
       console.error('Integration test setup failed:', error);
       throw error;
@@ -73,7 +62,7 @@ describe('API Integration Tests', () => {
     try {
       // Clean database before each test
       if (mongoose.connection.readyState === 1) {
-        const collections = mongoose.connection.collections;
+        const { collections } = mongoose.connection;
         const collectionNames = Object.keys(collections);
 
         for (const key of collectionNames) {
@@ -155,10 +144,10 @@ describe('API Integration Tests', () => {
       { method: 'get', path: '/availabilities', name: 'availabilities GET' },
     ];
 
-    endpoints.forEach((endpoint) => {
-      it(`should handle ${endpoint.name} request without timeout`, async () => {
+    endpoints.forEach(({ method, path, name }) => {
+      it(`should handle ${name} request without timeout`, async () => {
         try {
-          const response = await request(app)[endpoint.method](endpoint.path)
+          const response = await request(app)[method](path)
             .timeout(10000);
 
           // Should return some response (200, 401, 404, etc.)
@@ -167,7 +156,7 @@ describe('API Integration Tests', () => {
         } catch (error) {
           // For integration tests, we mainly want to ensure no timeouts
           if (error.message.includes('timeout')) {
-            fail(`Request to ${endpoint.path} timed out - indicates database connection issues`);
+            throw new Error(`Request to ${path} timed out - indicates database connection issues`);
           }
           // Other errors like 404 are acceptable
         }
