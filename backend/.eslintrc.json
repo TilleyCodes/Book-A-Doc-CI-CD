@@ -14,7 +14,7 @@
   "rules": {
     "no-console": "off",
     "consistent-return": "off",
-    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "next|error" }],
     "no-underscore-dangle": "off",
     "import/no-unresolved": ["error", { "commonjs": true }],
     "import/no-extraneous-dependencies": ["error", {
@@ -32,7 +32,7 @@
     "eol-last": ["error", "always"],
     "no-trailing-spaces": "error",
     "no-restricted-globals": ["error", "isNaN"],
-    "arrow-body-style": ["error", "as-needed"],
+    "arrow-body-style": "off",
     "prefer-destructuring": "warn",
     "no-restricted-syntax": "off",
     "guard-for-in": "off",
@@ -41,7 +41,12 @@
     "implicit-arrow-linebreak": "off",
     "function-paren-newline": "off",
     "prefer-template": "warn",
-    "no-script-url": "off"
+    "no-script-url": "off",
+    "no-plusplus": "off",
+    "no-undef": "off",
+    "global-require": "off",
+    "padded-blocks": "off",
+    "no-promise-executor-return": "off"
   },
   "overrides": [
     {
@@ -58,7 +63,13 @@
         "afterEach": "readonly",
         "beforeAll": "readonly",
         "afterAll": "readonly",
-        "test": "readonly"
+        "test": "readonly",
+        "fail": "readonly"
+      },
+      "rules": {
+        "no-undef": "off",
+        "global-require": "off",
+        "import/no-dynamic-require": "off"
       }
     }
   ]

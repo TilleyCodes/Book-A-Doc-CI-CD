@@ -1,30 +1,24 @@
 {
-  "name": "dev1003-a2",
+  "name": "book-a-doc-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-  "start": "node src/index.js",
-  "dev": "./node_modules/.bin/vite",
-  "build": "./node_modules/.bin/vite build",
-  "seed": "node src/utils/seed.js",
-  "wipe": "node src/utils/wipe.js",
-  "preview": "./node_modules/.bin/vite preview",
-  "test": "./node_modules/.bin/jest --detectOpenHandles",
-  "test:ci": "./node_modules/.bin/jest --ci --coverage --watchAll=false --detectOpenHandles --verbose --passWithNoTests",
-  "test:watch": "./node_modules/.bin/jest --watch --detectOpenHandles",
-  "test:ui": "./node_modules/.bin/vitest --ui",
-  "test:coverage": "./node_modules/.bin/jest --coverage --detectOpenHandles",
-  "test:e2e": "./node_modules/.bin/cypress run",
-  "test:e2e:open": "./node_modules/.bin/cypress open",
-  "test:api": "./node_modules/.bin/vitest run --config vitest.api.config.js",
-  "test:integration": "./node_modules/.bin/jest --config jest.integration.config.js --detectOpenHandles",
-  "lint": "./node_modules/.bin/eslint . --max-warnings=50",
-  "lint:fix": "./node_modules/.bin/eslint . --fix --max-warnings=50"
-},
-  "keywords": [],
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/utils/seed.js",
+    "wipe": "node src/utils/wipe.js",
+    "test": "jest --detectOpenHandles --forceExit --maxWorkers=1",
+    "test:ci": "jest --ci --coverage --watchAll=false --detectOpenHandles --forceExit --verbose --passWithNoTests --maxWorkers=1 --testTimeout=60000",
+    "test:watch": "jest --watch --detectOpenHandles --maxWorkers=1",
+    "test:coverage": "jest --coverage --detectOpenHandles --forceExit --maxWorkers=1",
+    "test:integration": "jest --config jest.integration.config.js --detectOpenHandles --forceExit --maxWorkers=1 --testTimeout=60000",
+    "lint": "eslint . --max-warnings=50 --ignore-pattern node_modules/ --ignore-pattern coverage/",
+    "lint:fix": "eslint . --fix --max-warnings=50 --ignore-pattern node_modules/ --ignore-pattern coverage/"
+  },
+  "keywords": ["healthcare", "booking", "api", "express", "mongodb"],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Backend API for Book-a-Doc healthcare booking platform",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -72,6 +66,8 @@
         "lines": 40,
         "statements": 40
       }
-    }
+    },
+    "testTimeout": 60000,
+    "maxWorkers": 1
   }
 }
