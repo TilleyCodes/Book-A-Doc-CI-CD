@@ -21,7 +21,7 @@ const app = express();
 app.use(helmet());
 
 // Middleware, allow JSON body data request
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // Configure CORS
 const corsOptions = {
@@ -54,6 +54,37 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
   });
+});
+
+// Method Not Allowed handler - catches unsupported HTTP methods
+app.use((req, res, next) => {
+  const allowedMethods = {
+    '/patients': ['GET', 'POST'],
+    '/doctors': ['GET', 'POST'],
+    '/specialties': ['GET', 'POST'],
+    '/bookings': ['GET', 'POST'],
+    '/medicalCentres': ['GET', 'POST'],
+    '/availabilities': ['GET', 'POST'],
+    '/doctorCentres': ['GET', 'POST'],
+    '/doctorAvailabilities': ['GET', 'POST'],
+    '/auth': ['GET', 'POST'],
+  };
+
+  const basePath = req.path.split('/')[1] ? `/${req.path.split('/')[1]}` : req.path;
+  const pathKey = Object.keys(allowedMethods).find((path) => basePath.startsWith(path));
+
+  if (pathKey) {
+    const allowed = allowedMethods[pathKey];
+    if (!allowed.includes(req.method)) {
+      return res.status(405).json({
+        status: 'error',
+        message: `Method ${req.method} not allowed`,
+        allowedMethods: allowed,
+      });
+    }
+  }
+
+  next();
 });
 
 // 404 Handler
