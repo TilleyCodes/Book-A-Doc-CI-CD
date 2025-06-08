@@ -1,257 +1,539 @@
-# Book-a-Doc CI/CD Pipeline Implementation
+# Book-A-Doc – Containerised MERN Application with CI/CD Pipeline
 
 ## Table of Contents
 
-1. [Dependent Software and Packages](#dependent-software-and-packages)
-   - [Core CI/CD Dependencies](#core-cicd-dependencies)
-   - [Development and Testing Dependencies](#development-and-testing-dependencies)
-2. [Hardware Requirements](#hardware-requirements)
-   - [Development Environment](#development-environment)
-   - [Production Environment](#production-environment)
-   - [Scalability Considerations](#scalability-considerations)
-3. [Comparison to Alternative Technology Choices](#comparison-to-alternative-technology-choices)
-   - [GitHub Actions vs Alternatives](#github-actions-vs-alternatives)
-   - [AWS vs Alternative Cloud Providers](#aws-vs-alternative-cloud-providers)
-   - [Docker vs Alternative Containerisation](#docker-vs-alternative-containerisation)
-4. [Purpose of Chosen Technologies](#purpose-of-chosen-technologies)
-5. [Licensing of Chosen Technologies](#licensing-of-chosen-technologies)
-6. [CI/CD Pipeline Architecture](#cicd-pipeline-architecture)
-   - [Workflow Structure](#workflow-structure)
-   - [Testing Strategy](#testing-strategy)
-   - [Deployment Process](#deployment-process)
-7. [Security Implementation](#security-implementation)
-8. [Setup and Configuration](#setup-and-configuration)
-9. [Deployment](#deployment)
-
-## Dependent Software and Packages
-
-The Book-a-Doc CI/CD pipeline depends on several key technologies and services, each chosen to fulfil specific requirements of a modern automated deployment system.
-
-### Core CI/CD Dependencies:
-
-- **GitHub Actions:** Serves as my primary CI/CD platform, providing workflow automation directly integrated with my GitHub repository. GitHub Actions was selected for its seamless integration, extensive marketplace of pre-built actions, and cost-effective pricing structure.
-
-- **Amazon Web Services (AWS):** Provides my cloud infrastructure through multiple managed services including ECS for container orchestration, ECR for image storage, and Systems Manager for configuration management.
-
-- **Docker:** Handles containerisation of my applications, ensuring consistent deployment environments across development, testing, and production stages.
-
-- **Amazon ECS (Elastic Container Service):** Manages our containerised applications with automatic scaling, load balancing, and health monitoring capabilities.
-
-- **Amazon ECR (Elastic Container Registry):** Stores and manages my Docker container images securely with built-in vulnerability scanning.
-
-- **AWS Systems Manager Parameter Store:** Securely stores configuration data and sensitive information like database credentials and API keys.
-
-### Development and Testing Dependencies:
-
-- **Jest (v29.7.0):** Provides comprehensive testing capabilities for our backend API endpoints and business logic.
-
-- **Vitest (v3.0.7):** Enables fast, concurrent testing of our React frontend components with excellent Vite integration.
-
-- **Cypress (v13.17.0):** Facilitates end-to-end testing of complete user workflows across our application.
-
-- **ESLint (v8.57.1) with Airbnb Configuration:** Enforces consistent code quality and style standards throughout my codebase.
-
-- **MongoDB Memory Server (v10.1.4):** Creates isolated, in-memory database instances for reliable testing without affecting production data.
-
-## Hardware Requirements
-
-My CI/CD pipeline has been designed to run efficiently on standard cloud infrastructure while maintaining cost-effectiveness.
-
-### Development Environment:
-
-- Any modern computer with at least 8GB RAM for local development and testing
-- 2GHz dual-core processor or better for acceptable build times
-- 10GB free disk space for Docker images and build artifacts
-- Reliable internet connection for accessing cloud services and downloading dependencies
-
-### Production Environment:
-
-My production infrastructure runs on AWS with the following specifications:
-- **ECS Fargate Tasks:** 0.25 vCPU and 512MB RAM per container (scalable based on demand)
-- **Container Registry:** Amazon ECR with lifecycle policies for automatic cleanup
-- **Database:** MongoDB Atlas with appropriate sizing based on data requirements
-- **Monitoring:** CloudWatch for logging and performance metrics
-
-### Scalability Considerations:
-
-The pipeline architecture supports horizontal scaling through AWS ECS auto-scaling capabilities. As demand increases, additional container instances are automatically provisioned. The CI/CD pipeline itself scales efficiently through GitHub Actions' parallel job execution and matrix build strategies.
-
-## Comparison to Alternative Technology Choices
-
-I carefully evaluated several alternatives before finalising my CI/CD stack. Here's how my chosen technologies compare to other options.
-
-### GitHub Actions vs Alternatives:
-
-- **GitHub Actions vs Jenkins:** I chose GitHub Actions over Jenkins for its seamless integration with my existing GitHub workflow and elimination of server maintenance overhead. While Jenkins offers more customisation options, GitHub Actions provides sufficient flexibility with significantly less complexity.
-
-- **GitHub Actions vs GitLab CI:** GitHub Actions was selected over GitLab CI primarily for consistency with my development workflow and repository hosting. GitLab CI offers similar capabilities, but GitHub Actions' marketplace ecosystem and documentation quality gave it the advantage.
-
-- **GitHub Actions vs CircleCI:** Though CircleCI provides excellent performance optimisations, GitHub Actions was chosen for its cost-effectiveness and integrated security features. The ability to manage repositories, CI/CD, and security scanning in one platform simplified my development workflow.
-
-- **GitHub Actions vs Azure DevOps:** While Azure DevOps offers comprehensive project management features, GitHub Actions provided better integration with our existing tools and a more straightforward configuration process for our specific requirements.
-
-### AWS vs Alternative Cloud Providers:
-
-- **AWS vs Google Cloud Platform:** AWS was selected over GCP primarily for its stronger presence in the Australian market and more mature container orchestration services. While GCP offers competitive pricing and excellent Kubernetes support, AWS ECS provided the right balance of simplicity and functionality for my needs.
-
-- **AWS vs Microsoft Azure:** Though Azure provides excellent integration with Microsoft development tools, AWS was chosen for its comprehensive service portfolio and better Australian data sovereignty options. The Sydney region availability was crucial for my compliance requirements.
-
-- **AWS vs Heroku:** While Heroku offers simpler deployment processes, AWS provides greater scalability, customisation options, and long-term cost effectiveness. Heroku's limitations on container management and scaling made AWS the better choice for my growing application.
-
-### Docker vs Alternative Containerisation:
-
-- **Docker vs Podman:** Docker was chosen over Podman for its wider industry adoption, extensive documentation, and seamless integration with our chosen cloud services. While Podman offers security advantages, Docker's ecosystem maturity made it the practical choice.
-
-- **Docker vs Traditional VMs:** Containerisation with Docker provides significantly better resource efficiency and faster deployment times compared to traditional virtual machines. The consistent environment guarantees eliminated deployment inconsistencies we experienced with VM-based approaches.
-
-## Purpose of Chosen Technologies
-
-Each technology in my CI/CD pipeline was carefully selected to address specific operational requirements.
-
-- **GitHub Actions:** Automates my entire CI/CD pipeline, from code validation through production deployment, while maintaining close integration with my development workflow.
-
-- **AWS ECS:** Provides serverless container orchestration, eliminating the need for infrastructure management while ensuring automatic scaling and high availability.
-
-- **Amazon ECR:** Securely stores my container images with automated vulnerability scanning and lifecycle management for cost optimisation.
-
-- **Docker:** Ensures consistent application environments across all deployment stages, eliminating configuration drift and "works on my machine" issues.
-
-- **AWS Systems Manager:** Manages sensitive configuration data securely, providing encrypted storage and fine-grained access control for application secrets.
-
-- **Jest/Vitest/Cypress:** Provides comprehensive testing coverage across unit, integration, and end-to-end scenarios, ensuring application reliability before deployment.
-
-- **ESLint with Airbnb Configuration:** Maintains code quality standards and consistency across my development workflow, reducing bugs and improving maintainability.
-
-## Licensing of Chosen Technologies
-
-All technologies used in my CI/CD implementation were selected with careful consideration of their licensing terms to ensure compliance and minimise legal risks.
-
-- **GitHub Actions:** Usage is governed by GitHub's Terms of Service, with generous free tier limits for public repositories and competitive pricing for private repositories.
-
-- **Amazon Web Services:** Commercial cloud services with pay-per-use pricing model, ensuring we only pay for resources actually consumed.
-
-- **Docker:** Docker Engine is licensed under the Apache License 2.0, allowing free use for most commercial applications. Docker Desktop requires licensing for large commercial organisations.
-
-- **Jest:** Licensed under the MIT License, providing maximum flexibility for our testing requirements.
-
-- **Vitest:** Licensed under the MIT License, ensuring compatibility with our open-source development approach.
-
-- **Cypress:** Open-source version is licensed under the MIT License, with commercial support options available if needed.
-
-- **ESLint:** Licensed under the MIT License, allowing unrestricted use in our development workflow.
-
-The MIT License is advantageous for my project as it allows for unrestricted use, modification, and distribution, requiring only that the license notice be included in any substantial portions of the software. This gives me the freedom to develop and potentially commercialise my application without significant licensing constraints.
-
-## CI/CD Pipeline Architecture
-
-My CI/CD pipeline implements a comprehensive workflow that automates testing, building, and deployment processes while maintaining high security and reliability standards.
-
-### Workflow Structure
-
-#### Build and Test Workflow (`build.yml`)
-This workflow executes on every push to main/develop branches and pull requests, implementing a multi-stage validation process:
-
-1. **Dependency Installation:** Installs Node.js dependencies for both frontend and backend with intelligent caching to reduce build times
-2. **Code Quality Checks:** Runs ESLint validation with Airbnb style guide enforcement
-3. **Comprehensive Testing:** Executes unit tests, integration tests, and security validation
-4. **Container Building:** Creates optimised Docker images for both frontend and backend
-5. **Image Publishing:** Pushes validated images to Amazon ECR with appropriate tagging
-
-#### Deployment Workflow (`deploy.yml`)
-This workflow handles infrastructure provisioning and application deployment:
-
-1. **Infrastructure Setup:** Automated creation and configuration of AWS ECS clusters, VPC settings, and security groups
-2. **Service Deployment:** Blue-green deployment strategy ensuring zero-downtime updates
-3. **Health Validation:** Automated health checks and smoke testing to verify deployment success
-4. **Monitoring Setup:** Configuration of logging and monitoring systems for ongoing observability
-
-### Testing Strategy
-
-My testing approach implements multiple validation layers:
-
-- **Unit Testing:** Individual component and function testing using Jest for backend and Vitest for frontend
-- **Integration Testing:** API endpoint testing with realistic data scenarios using Supertest
-- **Security Testing:** Automated vulnerability scanning and input validation testing
+1. [Overview](#overview)  
+2. [Application Architecture Diagram](#application-architecture-diagram)  
+    - [System Context Diagram](#system-context-diagram)
+    - [Container Relationship Diagram](#container-relationship-diagram)
+    - [CI/CD Pipeline Diagram](#cicd-pipeline-diagram)
+    - [Deployment Architecture Diagram](#deployment-architecture-diagram)
+    - [Security Architecture Diagram](#security-architecture-diagram)
+    - [Detailed Application Architecture Diagram](#detailed-application-architecture-diagram) 
+3. [Technology Stack](#technology-stack)  
+4. [CI/CD Pipeline Implementation](#cicd-pipeline-implementation)
+    - [Workflow Overview](#workflow-overview)
+    - [Testing Automation](#testing-automation)
+    - [Deployment Automation](#deployment-automation)
+    - [Resource Management](#resource-management)
+5. [Containerisation Setup](#containerisation-setup)  
+    - [Docker Image Naming and Versioning](#docker-image-naming-and-versioning)  
+    - [Environment Configuration](#environment-configuration)  
+    - [Project Structure](#project-structure)  
+    - [Build Optimisation](#build-optimisation)  
+6. [Running the Application](#running-the-application)  
+    - [Environment Setup](#environment-setup)  
+    - [Development Environment](#development-environment)  
+    - [Production Environment](#production-environment)  
+7. [Licensing](#licensing)  
+8. [Deployment](#deployment)  
+    - [CI/CD Integration](#cicd-integration)  
+    - [Production Considerations](#production-considerations)   
+
+---
+
+## Overview
+
+Book-A-Doc is a fullstack MERN (MongoDB, Express, React, Node.js) web application designed for booking medical appointments. This project demonstrates modern DevOps practices including comprehensive CI/CD pipeline implementation, containerisation for development environments using Docker and Docker Compose, and automated deployment to AWS cloud infrastructure. All services, including the database, backend, and frontend, are independently containerised for modular development and deployment with complete automation from code commit to production deployment.
+
+---
+
+## Application Architecture Diagram
+
+The Book-A-Doc architecture is represented through multiple diagrams that provide different perspectives on the system:
+
+### 1. System Context Diagram
+![System Context Diagram](images/System_Context_Diagram..png)
+
+This high level diagram shows the Book-A-Doc system in relation to its users (patients and doctors) and external systems (cloud deployment and CI/CD pipeline).
+
+### 2. Container Relationship Diagram
+![Container Relationship Diagram](images/Container_Relationship_Diagram..png.png)
+
+This diagram focuses on the Docker containers and how they relate to each other within the Docker environment, highlighting the orchestration through docker-compose, network segmentation, and volume persistence.
+
+### 3. CI/CD Pipeline Diagram
+![CI/CD Pipeline Diagram](images/CICD_Pipeline_Diagram..png)
+
+This diagram illustrates the complete automated pipeline from code commit through testing, building, and deployment. It shows the three main workflows: testing automation, build and deployment, and resource cleanup for cost management.
+
+### 4. Deployment Architecture Diagram
+![Deployment Architecture Diagram](images/Deployment_Architecture_Diagram..png)
+
+This diagram illustrates how the containerised application is deployed in production, including CI/CD pipeline, container registry, secrets management, and the production environment with specialised containers.
+
+### 5. Security Architecture Diagram
+![Security Architecture Diagram](images/Security_Architecture_Diagram..png)
+
+This diagram focuses on the security aspects of the application across different layers: external security (SSL/TLS, Nginx headers, CORS), application security (JWT, Helmet, bcrypt), and data security (environment variables, network isolation, volume security).
+
+### 6. Detailed Application Architecture Diagram
+![Application Architecture Diagram](images/Application_Architecture_Diagram..png)
+
+The fully containerised Book-A-Doc architecture is split into three main services:
+
+- **Frontend (React + Vite)**
+  - Port: `5173`
+  - Provides the user interface for patients and doctors
+  - Communicates with the backend API via HTTP requests
+  - Resides on the `frontend-network`
+
+- **Backend (Node.js + Express)**
+  - Port: `3000`
+  - Manages authentication, business logic, and API endpoints
+  - Uses environment variables for secrets and configuration
+  - Middleware includes Helmet (security), CORS, and a global error handler
+  - Connected to both `frontend-network` and `backend-network`
+
+- **MongoDB Database**
+  - Port: `27017`
+  - Stores application data (users, doctors, bookings)
+  - Uses volume `mongo-data` for persistent storage  
+  - Connected to `backend-network`
+
+- **Docker Compose**
+  - Coordinates the startup and dependency order of services via `depends_on`
+  - Configures isolated bridge networks and volume bindings for data and communication integrity  
+
+---
+
+## Technology Stack
+
+### Backend
+- Node.js  
+- Express.js  
+- MongoDB  
+- Mongoose  
+- Helmet, CORS  
+- dotenv, JWT, bcrypt  
+
+### Frontend
+- React (via Vite)  
+- React Router  
+- React-DatePicker, React-Loading-Skeleton  
+
+### Development & Testing
+- Docker & Docker Compose  
+- ESLint (Airbnb Style Guide)  
+- Jest (Backend Unit & Integration Testing)
+- Vitest (Frontend Unit Testing)
+- React Testing Library (Component Testing)
+- Cypress (End-to-End Testing)
+- Supertest (API Testing)
+
+### CI/CD & DevOps
+- GitHub Actions (CI/CD Pipeline)
+- AWS ECS (Container Orchestration)
+- AWS ECR (Container Registry)
+- AWS Parameter Store (Secrets Management)
+- AWS CloudWatch (Logging & Monitoring)
+
+### Production
+- PM2 Process Manager  
+- Nginx Web Server  
+- SSL/TLS for secure communication  
+
+---
+
+## CI/CD Pipeline Implementation
+
+### Workflow Overview
+
+The CI/CD pipeline consists of four main GitHub Actions workflows that provide comprehensive automation:
+
+#### 1. Testing Workflow (`test.yml`)
+**Triggers:** Push to main/develop branches, Pull requests to main, Manual dispatch
+**Purpose:** Comprehensive testing across all application layers
+
+```yaml
+# Parallel testing jobs for optimal performance
+frontend-tests:
+  - Vitest unit tests and component testing
+  - ESLint code quality validation
+  - Coverage reporting with artifact storage
+
+backend-tests:
+  - Jest unit tests with MongoDB Memory Server
+  - Integration testing with Supertest
+  - Security testing and vulnerability assessment
+
+e2e-tests:
+  - Cypress end-to-end testing with full application stack
+  - Real browser testing with video recording
+  - Complete user workflow validation
+
+test-summary:
+  - Consolidated test reporting across all test suites
+  - Status aggregation and deployment readiness assessment
+```
+
+#### 2. Build and Test Workflow (`build.yml`)
+**Triggers:** Push to main/develop branches, Pull requests to main
+**Purpose:** Advanced build pipeline with container management
+
+```yaml
+# Multi-stage pipeline with advanced optimisations
+install:
+  - Dependency caching for performance optimisation
+  - Parallel frontend/backend dependency installation
+  
+test:
+  - Comprehensive testing with timeout management
+  - Coverage reporting with artifact storage
+  
+security:
+  - npm audit security scanning
+  - Vulnerability assessment for production dependencies
+  
+build:
+  - Conditional execution (main branch only)
+  - AWS ECR integration and authentication
+  - Docker image building with production optimisations
+```
+
+#### 3. Deployment Workflow (`deploy.yml`)
+**Triggers:** Successful completion of build workflow, Manual dispatch
+**Purpose:** Automated infrastructure provisioning and application deployment
+
+```yaml
+# Infrastructure as Code deployment
+- AWS ECS Cluster Creation
+- Security Groups & IAM Roles
+- Container Image Publishing
+- Blue-Green Deployment Strategy
+- Health Monitoring & Validation
+```
+
+#### 4. Resource Cleanup Workflow (`cleanup.yml`)
+**Triggers:** Manual dispatch only
+**Purpose:** Complete AWS resource cleanup for cost management
+
+```yaml
+# Comprehensive resource cleanup
+- ECS Services & Clusters
+- ECR Repositories & Images
+- CloudWatch Log Groups
+- SSM Parameters & Secrets
+- Security Groups & IAM Roles
+```
+
+### Testing Automation
+
+Our testing strategy implements multiple validation layers to ensure application reliability:
+
+- **Unit Testing:** Individual component and function testing using Jest (backend) and Vitest (frontend)
+- **Integration Testing:** API endpoint testing with realistic data scenarios using Supertest and MongoDB Memory Server
+- **Security Testing:** Comprehensive security validation including XSS prevention, injection attacks, and authentication testing
 - **End-to-End Testing:** Complete user workflow validation using Cypress
+- **Coverage Reporting:** Automated test coverage collection with artifact storage for CI/CD pipeline analysis
 
-### Deployment Process
+### Deployment Automation
 
-I implement a blue-green deployment strategy that ensures zero downtime during updates:
+The deployment process implements a sophisticated blue-green deployment strategy ensuring zero downtime:
 
-1. **New Version Deployment:** Deploy new container instances alongside existing ones
-2. **Health Validation:** Verify new instances are healthy and responding correctly
-3. **Traffic Migration:** Gradually shift traffic from old to new instances
-4. **Cleanup:** Remove old instances once new deployment is confirmed stable
+1. **Infrastructure Provisioning:** Automated creation of AWS ECS clusters, security groups, and IAM roles
+2. **Container Management:** Building and pushing optimised Docker images to Amazon ECR with vulnerability scanning
+3. **Secrets Management:** Secure handling of sensitive configuration through AWS Parameter Store
+4. **Service Deployment:** Blue-green deployment with automated health checks and rollback capabilities
+5. **Monitoring Integration:** CloudWatch logging and performance metrics for ongoing observability
 
-## Security Implementation
+### Resource Management
 
-Security is integrated throughout my CI/CD pipeline at multiple levels:
+The cleanup workflow demonstrates production-grade cost management:
 
-### Infrastructure Security
-- **Network Isolation:** VPC security groups restricting network access to essential communications only
-- **Encryption:** All data encrypted in transit and at rest using AWS encryption services
-- **Access Control:** IAM roles with minimal required permissions following least-privilege principles
-- **Secrets Management:** No hardcoded credentials; all sensitive data managed through AWS Systems Manager
+- **Complete Resource Inventory:** Systematic cleanup of all AWS resources to prevent unexpected charges
+- **Safe Deletion:** Proper dependency handling to avoid resource conflicts
+- **Error Handling:** Graceful handling of missing or already-deleted resources
+- **Audit Trail:** Comprehensive logging of all cleanup operations
 
-### Application Security
-- **Input Validation:** Comprehensive validation of all user inputs to prevent injection attacks
-- **Authentication:** JWT-based stateless authentication with secure token management
-- **Security Headers:** Helmet middleware implementation for comprehensive HTTP security headers
-- **Dependency Scanning:** Regular automated scanning for vulnerable packages and automatic updates
+---
 
-### Pipeline Security
-- **Secret Scanning:** Automated detection of accidentally committed secrets in code
-- **Access Auditing:** Complete audit trail of all deployment activities and access patterns
-- **Container Scanning:** Security analysis of Docker images before deployment
-- **Environment Isolation:** Strict separation between development, staging, and production environments
+## Containerisation Setup
 
-## Setup and Configuration
+### Docker Image Naming and Versioning
+
+Each container image follows a consistent naming and tagging convention that reflects the application, environment, and version:  
+
+#### Development Environment
+- **Frontend**: `book-a-doc-frontend-v1.0-dev`
+- **Backend**: `book-a-doc-backend-v1.0-dev`
+- **MongoDB**: `book-a-doc-mongo-v1.0-dev`
+
+#### Production Environment
+- **Frontend**: `book-a-doc-frontend-v1.0-prod`
+- **Backend**: `book-a-doc-backend-v1.0-prod`
+- **MongoDB**: `book-a-doc-mongo-v1.0-prod`
+
+These names improve traceability across environments and support the automated CI/CD pipeline image management.
+
+### Environment Configuration
+
+- Backend `.env` file stores:
+  - `PORT`
+  - `MONGODB_URI`
+  - `JWT_SECRET`
+  - `ALLOWED_ORIGINS`
+- These variables are injected at build/runtime using Docker Compose and excluded from the container via `.dockerignore`.
+
+#### Development vs Production
+- Development uses `.env` files for local configuration
+- Production uses AWS Parameter Store for secure secrets management
+- CI/CD pipeline automatically injects environment-specific configurations
+- Sensitive information like `JWT_SECRET` and database credentials are handled securely through GitHub Secrets
+
+
+### Project Structure
+
+```
+├── .github/workflows/
+│   ├── test.yml              # Comprehensive testing pipeline
+│   ├── build.yml             # Build and container management
+│   ├── deploy.yml            # AWS deployment automation
+│   └── cleanup.yml           # Resource cleanup for cost management
+├── backend/
+│   ├── Dockerfile            # Development build
+│   ├── Dockerfile.prod       # Production build with security hardening
+│   ├── src/tests/            # Comprehensive test suite
+│   └── .dockerignore
+├── frontend/
+│   ├── Dockerfile            # Development build
+│   ├── Dockerfile.prod       # Production build with optimisations
+│   ├── cypress/              # End-to-end test configurations
+│   └── .dockerignore
+├── docker-compose.yml        # Development orchestration
+├── docker-compose.prod.yaml  # Production orchestration
+└── images/                   # Architecture diagrams
+```
+
+This structure ensures modular container builds, comprehensive testing coverage, and aligns with Docker best practices for isolated contexts.
+
+### Build Optimisation
+
+To maintain small, efficient container sizes and improve performance:  
+
+- `.dockerignore` is used to exclude unnecessary files like `node_modules`, `dist`, `.env`, and logs.
+- Multi-stage builds reduce final image size while maintaining build efficiency
+- Production images include security hardening with non-root users and health checks
+- The command `docker builder prune` can be used to clean up build cache:  
+
+```bash
+docker builder prune
+```
+
+---
+
+## Running the Application
 
 ### Prerequisites
-1. **AWS Account:** Valid AWS account with appropriate permissions for ECS, ECR, and Systems Manager
-2. **GitHub Repository:** Repository with Actions enabled and appropriate branch protection rules
-3. **MongoDB Database:** MongoDB Atlas cluster or alternative database solution
+- [Docker](https://www.docker.com/products/docker-desktop)
+- [Docker Compose](https://docs.docker.com/compose/)
+- [GitHub Account](https://github.com) (for CI/CD pipeline)
+- [AWS Account](https://aws.amazon.com) (for production deployment)
 
-### Required GitHub Secrets
-Configure the following secrets in your GitHub repository settings:
-
-```
-AWS_ACCESS_KEY_ID=your_aws_access_key_id
-AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
-AWS_ACCOUNT_ID=your_12_digit_aws_account_id
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret_key
+### Clone Repositories
+```bash
+git clone https://github.com/TilleyCodes/Book-A-Doc-Back-End-web-Application
+git clone https://github.com/TilleyCodes/Book-A-Doc-Front-End-Web-Application
 ```
 
-### Initial Setup Process
-1. **AWS Configuration:** Create IAM user with necessary permissions for ECS, ECR, and Systems Manager services
-2. **Database Setup:** Configure MongoDB Atlas cluster with appropriate network access settings
-3. **Repository Configuration:** Add required secrets and configure branch protection rules
-4. **Initial Deployment:** Push to main branch to trigger first automated deployment
-5. **Verification:** Confirm all services are running correctly and health checks are passing
+### Environment Setup
+
+Before running the frontend locally, create a .env file inside the frontend/ directory based on the provided .env.example. This environment file defines the backend API URL used during development.  
+
+- To create your .env file:
+```bash
+cp frontend/.env frontend/.env
+```
+
+- The .env.example includes:
+```bash
+VITE_API_URL=http://book-a-doc-backend-v1.0-dev:3000
+```
+
+You can update VITE_API_URL if needed to point to a different backend server during development.
+
+### Development Environment
+
+- Run the application in development mode with:  
+```bash
+docker-compose up --build
+```
+
+- Run the comprehensive test suite:
+```bash
+# Frontend tests
+cd frontend && npm test
+
+# Backend tests  
+cd backend && npm test && npm run test:integration
+
+# End-to-end tests
+cd frontend && npm run test:e2e
+```
+
+- Frontend available at: [http://localhost:5173](http://localhost:5173)  
+- Backend available at: [http://localhost:3000](http://localhost:3000)  
+
+- Stop the development services:
+```bash
+docker-compose down
+```
+
+### Production Environment
+
+Production deployment is handled automatically through the CI/CD pipeline, but can also be run manually:
+
+- For local production testing, use the production configuration:  
+```bash
+# Create production environment file
+cp backend/.env backend/.env.production
+# Edit .env.production with production values
+
+# Start production services
+docker-compose -f docker-compose.prod.yaml up -d
+```
+
+- Production configuration includes:
+  - Optimised build process with multi-stage builds
+  - PM2 process manager for the backend
+  - Nginx web server for the frontend
+  - Security enhancements (HTTP headers, SSL support)
+  - Automatic container restarts
+  - Health checks and monitoring integration
+
+- Monitor production logs:  
+```bash
+docker-compose -f docker-compose.prod.yaml logs -f
+```
+
+- Stop production services:  
+```bash
+docker-compose -f docker-compose.prod.yaml down
+```
+
+### CI/CD Pipeline Usage
+
+1. **Automated Testing:** Push code to main/develop branches to trigger comprehensive testing
+2. **Automated Deployment:** Successful tests automatically trigger deployment to AWS ECS
+3. **Manual Cleanup:** Use GitHub Actions to manually trigger resource cleanup when needed
+
+---
+
+## Licensing
+
+All libraries and frameworks used are under open source licenses:
+
+- MIT License: React, Express, Vite, Mongoose, JWT, bcrypt, ESLint, Jest, Vitest, Cypress, etc.
+- SSPL: MongoDB (Community Edition)
+
+These licenses enable free use, modification, and distribution while maintaining compliance with legal guidelines.
+
+---
 
 ## Deployment
 
-The Book-a-Doc application deployment strategy combines modern containerisation with cloud-native services to ensure scalability, reliability, and cost-effectiveness.
-
 ### CI/CD Integration
 
-My deployment process is fully automated through GitHub Actions workflows:
+The application features a comprehensive CI/CD pipeline using GitHub Actions that automates the entire deployment process:
 
-1. **Code Validation:** Every code change triggers comprehensive testing and quality checks
-2. **Container Building:** Successful validation triggers automated Docker image creation
-3. **Security Scanning:** All images undergo vulnerability scanning before deployment
-4. **Deployment Automation:** Approved changes are automatically deployed to AWS infrastructure
-5. **Health Monitoring:** Continuous monitoring ensures deployment success and application stability
+#### Automated Testing Pipeline
+```yaml
+name: Run Tests
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  frontend-tests:
+    # Vitest unit tests, ESLint validation, coverage reporting
+  backend-tests:
+    # Jest unit/integration tests, MongoDB Memory Server
+    # Security testing and vulnerability assessment
+  e2e-tests:
+    # Cypress end-to-end testing with full application stack
+  test-summary:
+    # Consolidated test reporting and deployment readiness
+```
+
+#### Advanced Build Pipeline
+```yaml
+name: Build and Test
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  install:
+    # Advanced dependency caching and installation
+  test:
+    # Comprehensive testing with timeout management
+  security:
+    # npm audit security scanning
+  build:
+    # Conditional AWS ECR integration and container publishing
+```
+
+#### Automated Deployment Pipeline
+```yaml
+name: Deploy to AWS
+on:
+  workflow_run:
+    workflows: ["Run Tests"]
+    types: [completed]
+
+jobs:
+  deploy:
+    # AWS ECS infrastructure provisioning
+    # Container building and registry management
+    # Blue-green deployment with health checks
+    # Secrets management and monitoring setup
+```
+
+#### Resource Management Pipeline
+```yaml
+name: Cleanup AWS Resources
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    # Complete AWS resource cleanup
+    # Cost management and resource optimisation
+    # Safe deletion with dependency handling
+```
 
 ### Production Considerations
 
-The production deployment implements several best practices for enterprise-grade applications:
+The production deployment implements several best practices:
 
-- **High Availability:** Multi-zone deployment ensuring fault tolerance and disaster recovery
-- **Auto-scaling:** Dynamic scaling based on CPU and memory utilisation metrics
-- **Load Balancing:** Automatic traffic distribution across healthy application instances
-- **Monitoring:** Comprehensive logging and alerting through CloudWatch integration
-- **Backup Strategy:** Automated database backups with point-in-time recovery capabilities
+1. **Security Hardening**
+  - Enhanced HTTP security headers through Helmet middleware
+  - SSL certificate support for encrypted communication
+  - Environment-specific secrets management through AWS Parameter Store
+  - Non-root container users and minimal attack surface
 
-This comprehensive CI/CD implementation ensures reliable, secure, and automated deployment processes while maintaining the flexibility to adapt to changing requirements and scale with business growth.
+2. **Reliability & Performance**
+  - Container auto-restart policies for fault tolerance
+  - PM2 process manager for Node.js application resilience
+  - Persistent volume management for database durability
+  - Health checks and monitoring through AWS CloudWatch
+  - Blue-green deployment strategy for zero-downtime updates
+
+3. **Scalability & Cost Management**
+  - AWS ECS auto-scaling based on demand
+  - Multi-stage builds for optimised container sizes
+  - Nginx for efficient static content delivery
+  - Automated resource cleanup to prevent unnecessary costs
+  - Production-specific optimisations for each service
+
+4. **Monitoring & Observability**
+  - Comprehensive logging through CloudWatch integration
+  - Application performance monitoring and alerting
+  - Health check endpoints for service validation
+  - Automated deployment status reporting and rollback capabilities
+
+The complete CI/CD implementation ensures reliable, secure, and automated deployment processes while maintaining the flexibility to adapt to changing requirements and scale with business growth.
