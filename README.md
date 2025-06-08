@@ -43,27 +43,27 @@ Book-A-Doc is a fullstack MERN (MongoDB, Express, React, Node.js) web applicatio
 The Book-A-Doc architecture is represented through multiple diagrams that provide different perspectives on the system:
 
 ### 1. System Context Diagram
-![System Context Diagram](images/System_Context_Diagram..png)
+![System Context Diagram](images/System%20Context%20Diagram..png)
 
 This high level diagram shows the Book-A-Doc system in relation to its users (patients and doctors) and external systems (cloud deployment and CI/CD pipeline).
 
 ### 2. Container Relationship Diagram
-![Container Relationship Diagram](images/Container_Relationship_Diagram..png.png)
+![Container Relationship Diagram](images/Container_Relationship_Diagram..png)
 
 This diagram focuses on the Docker containers and how they relate to each other within the Docker environment, highlighting the orchestration through docker-compose, network segmentation, and volume persistence.
 
 ### 3. CI/CD Pipeline Diagram
-![CI/CD Pipeline Diagram](images/CICD_Pipeline_Diagram..png)
+![CI/CD Pipeline Diagram](images/CICD%20Pipeline%20Diagram..png)
 
 This diagram illustrates the complete automated pipeline from code commit through testing, building, and deployment. It shows the three main workflows: testing automation, build and deployment, and resource cleanup for cost management.
 
 ### 4. Deployment Architecture Diagram
-![Deployment Architecture Diagram](images/Deployment_Architecture_Diagram..png)
+![Deployment Architecture Diagram](images/Deployment%20Architecture%20Diagram..png)
 
 This diagram illustrates how the containerised application is deployed in production, including CI/CD pipeline, container registry, secrets management, and the production environment with specialised containers.
 
 ### 5. Security Architecture Diagram
-![Security Architecture Diagram](images/Security_Architecture_Diagram..png)
+![Security Architecture Diagram](images/Security%20Architecture%20Diagram..png)
 
 This diagram focuses on the security aspects of the application across different layers: external security (SSL/TLS, Nginx headers, CORS), application security (JWT, Helmet, bcrypt), and data security (environment variables, network isolation, volume security).
 
@@ -537,3 +537,5 @@ The production deployment implements several best practices:
   - Automated deployment status reporting and rollback capabilities
 
 The complete CI/CD implementation ensures reliable, secure, and automated deployment processes while maintaining the flexibility to adapt to changing requirements and scale with business growth.
+
+[def]: images/CICD_Pipeline_Diagram.png
